@@ -38,7 +38,7 @@ let package = Package(
         ),
         .testTarget(
             name: "MagpieTunnelStatusTests",
-            dependencies: ["MagpieTunnelCore"],
+            dependencies: ["MagpieTunnelCore", "MagpieTunnelStatus"],
             path: "Tests/MagpieTunnelStatusTests"
         ),
     ],
