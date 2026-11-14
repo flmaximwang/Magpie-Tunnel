@@ -235,7 +235,12 @@ final class MagpieTunnelDaemonIntegrationTests: XCTestCase {
             self.status("t1")?.isUp == true && self.status("t1")?.port == port
         }
         XCTAssertTrue(cameUp)
-        XCTAssertTrue(TCPProbe.canConnect(port: port, timeout: 1.0))
+        // 状态 up 已由守护自己的探测写入；这里复探监听端口。mock 的 healthy
+        // 模式是 while 循环重启 nc，探测可能恰好落在重启间隙，故短重试。
+        let listenerUp = waitUntil(timeout: 5, "隧道端口接受连接") {
+            TCPProbe.canConnect(port: port, timeout: 1.0)
+        }
+        XCTAssertTrue(listenerUp)
 
         // 2. The ssh child got the exact hardened legacy argument list.
         let cameUp2 = waitUntil(timeout: 5, "mock ssh 收到启动参数") { self.spawnCount(port: port) >= 1 }
