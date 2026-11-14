@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "magpie_tunnel",
+  "project_id": "366aabbd-2ec6-4b2c-babc-4a5d3178d838"
+}
