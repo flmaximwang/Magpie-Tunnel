@@ -13,14 +13,25 @@ struct TargetRow: Equatable {
     var title: String { (isUp ? "✓ " : "✗ ") + name + " " + hostPort }
 }
 
+/// The menu-bar glyph state. There are exactly two, matching the icon design:
+/// a continuous tail when everything is up, a visible gap in the tail when
+/// anything is wrong (a single outage, a missing status record, or no targets).
+enum MenuIconState: String, CaseIterable, Equatable {
+    case healthy
+    case degraded
+}
+
 struct MenuState: Equatable {
     let summaryTitle: String
     let targetRows: [TargetRow]
     let allUp: Bool
 
-    /// Legacy icons: 🔗 when every tunnel is up, degraded 🔗⃠ otherwise
-    /// (including an empty config — nothing running is not "all up").
-    var iconEmoji: String { allUp ? "🔗" : "🔗⃠" }
+    var iconState: MenuIconState { allUp ? .healthy : .degraded }
+
+    /// Spoken by VoiceOver for the status item; the emoji carried no text.
+    var iconAccessibilityLabel: String {
+        allUp ? "magpie 隧道：全部就绪" : "magpie 隧道：有隧道异常"
+    }
 }
 
 enum MenuStateBuilder {

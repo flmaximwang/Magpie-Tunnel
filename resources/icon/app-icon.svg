@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FCFDFF"/>
+      <stop offset="0.5" stop-color="#EEF1F6"/>
+      <stop offset="1" stop-color="#D7DDE7"/>
+    </linearGradient>
+    <linearGradient id="portal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8E97A3"/>
+      <stop offset="1" stop-color="#4A515B"/>
+    </linearGradient>
+    <linearGradient id="tail" x1="0" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#54D2C0"/>
+      <stop offset="0.42" stop-color="#2E9CAF"/>
+      <stop offset="1" stop-color="#1A5A7D"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="96" y="96" width="832" height="832" rx="188" fill="url(#plate)"/>
+  <rect x="96" y="96" width="832" height="832" rx="188" fill="none"
+        stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="5"/>
+
+  <!-- Tunnel portal: legs + crown -->
+  <path d="M 330 806 L 330 606 A 182 182 0 0 1 694 606 L 694 806"
+        fill="none" stroke="url(#portal)" stroke-width="72" stroke-linecap="round"/>
+
+  <!-- Iridescent tail: from the body, down through the portal opening -->
+  <path d="M 592 372
+           C 596 470 578 578 542 678
+           C 566 700 602 706 630 692
+           C 652 596 664 496 664 388 Z" fill="url(#tail)"/>
+
+  <!-- Magpie in profile, perched on the crown -->
+  <path d="M 726 214
+           A 56 56 0 0 1 806 250
+           L 834 246 L 806 292
+           C 806 330 782 356 748 366
+           C 712 376 676 394 648 420
+           C 620 400 590 390 556 388
+           C 586 360 620 338 656 322
+           C 676 272 698 226 726 214 Z" fill="#14171C"/>
+  <!-- Beak -->
+  <path d="M 800 240 L 872 226 L 812 272 Z" fill="#0E1115"/>
+  <!-- White nape field mark -->
+  <path d="M 726 300 C 742 276 768 268 790 280 C 774 304 748 314 726 300 Z" fill="#F8FAFD"/>
+  <!-- Eye -->
+  <circle cx="780" cy="264" r="9" fill="#FFFFFF"/>
+</svg>

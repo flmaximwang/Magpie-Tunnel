@@ -54,7 +54,7 @@ final class StatusViewModelTests: XCTestCase {
         let state = viewModel.refresh()
         XCTAssertEqual(state.summaryTitle, "magpie 隧道 1/1")
         XCTAssertTrue(state.allUp)
-        XCTAssertEqual(state.iconEmoji, "🔗")
+        XCTAssertEqual(state.iconState, .healthy)
     }
 
     func testMissingConfigFallsBackToBuiltInDefaults() throws {
@@ -70,7 +70,7 @@ final class StatusViewModelTests: XCTestCase {
         let state = StatusViewModel(paths: makePaths()).refresh()
         XCTAssertEqual(state.summaryTitle, "magpie 隧道 0/0")
         XCTAssertTrue(state.targetRows.isEmpty)
-        XCTAssertEqual(state.iconEmoji, "🔗⃠")
+        XCTAssertEqual(state.iconState, .degraded)
     }
 
     // MARK: - binary smoke test

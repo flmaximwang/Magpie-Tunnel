@@ -3,7 +3,7 @@ import XCTest
 @testable import MagpieTunnelStatus
 
 /// Pure-logic tests for MenuStateBuilder: all-up / partial / all-down /
-/// empty config, icons, summary text, per-target rows, key vs keyless URLs.
+/// empty config, icon state, summary text, per-target rows, key vs keyless URLs.
 final class MenuStateBuilderTests: XCTestCase {
     private func target(_ name: String, port: Int, key: String = "") -> TargetConfig {
         TargetConfig(name: name, localPort: port, sshTarget: "user@host", remotePort: 443, webKey: key)
@@ -21,7 +21,7 @@ final class MenuStateBuilderTests: XCTestCase {
         let targets = [target("alpha", port: 3430, key: "a1b2c3"), target("beta", port: 3431)]
         let state = MenuStateBuilder.build(targets: targets, statuses: statuses(up: ["alpha", "beta"]))
         XCTAssertTrue(state.allUp)
-        XCTAssertEqual(state.iconEmoji, "🔗")
+        XCTAssertEqual(state.iconState, .healthy)
         XCTAssertEqual(state.summaryTitle, "magpie 隧道 2/2")
         XCTAssertEqual(state.targetRows.map(\.title),
                        ["✓ alpha localhost:3430", "✓ beta localhost:3431"])
@@ -31,7 +31,7 @@ final class MenuStateBuilderTests: XCTestCase {
         let targets = [target("alpha", port: 3430), target("beta", port: 3431)]
         let state = MenuStateBuilder.build(targets: targets, statuses: statuses(up: ["alpha"]))
         XCTAssertFalse(state.allUp)
-        XCTAssertEqual(state.iconEmoji, "🔗⃠")
+        XCTAssertEqual(state.iconState, .degraded)
         XCTAssertEqual(state.summaryTitle, "magpie 隧道 1/2")
         XCTAssertEqual(state.targetRows[1].title, "✗ beta localhost:3431")
     }
@@ -40,7 +40,7 @@ final class MenuStateBuilderTests: XCTestCase {
         let targets = [target("alpha", port: 3430), target("beta", port: 3431)]
         let state = MenuStateBuilder.build(targets: targets, statuses: statuses(up: []))
         XCTAssertFalse(state.allUp)
-        XCTAssertEqual(state.iconEmoji, "🔗⃠")
+        XCTAssertEqual(state.iconState, .degraded)
         XCTAssertEqual(state.summaryTitle, "magpie 隧道 0/2")
         XCTAssertEqual(state.targetRows.map(\.isUp), [false, false])
     }
@@ -48,7 +48,7 @@ final class MenuStateBuilderTests: XCTestCase {
     func testEmptyConfigIsDegradedNotAllUp() {
         let state = MenuStateBuilder.build(targets: [], statuses: [:])
         XCTAssertFalse(state.allUp)
-        XCTAssertEqual(state.iconEmoji, "🔗⃠")
+        XCTAssertEqual(state.iconState, .degraded)
         XCTAssertEqual(state.summaryTitle, "magpie 隧道 0/0")
         XCTAssertTrue(state.targetRows.isEmpty)
     }

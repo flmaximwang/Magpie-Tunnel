@@ -2,6 +2,26 @@
 
 本项目的所有显著变更记录在此。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### 变更
+
+- **两个 App 合成一个**：`Magpie Web 隧道.app` 现在同时是菜单栏入口和隧道守护的宿主。`Contents/MacOS/MagpieTunnelStatus` 是 `CFBundleExecutable`，包内 `magpie-tunneld` 由它拉起；打开 App 即启动隧道（已在跑则不动），菜单「重启隧道守护」= 先停再起，退出菜单栏不杀守护、隧道继续跑。`Magpie Tunnel Status.app` 不再构建。
+- **菜单栏图标从 emoji 换成模板图**：`🔗` / `🔗⃠` 退役。新图标是一只栖在隧道拱门上的喜鹊，尾羽贯穿门洞表示全部就绪、尾羽在门洞中断开表示有异常。图标为 Template Image（黑 + alpha），自动适配浅色/深色菜单栏与选中高亮；无障碍标签同步为「magpie 隧道：全部就绪 / 有隧道异常」。
+- **Finder 图标重画**：浅灰圆角底 + 石墨拱门 + 黑背白腹的喜鹊 + 蓝绿虹彩尾羽，与菜单栏图标共用同一套轮廓。
+- 图标有了可复现的构建链：`resources/icon/*.svg` → `./scripts/build-icon.sh` → `resources/AppIcon.icns` + `resources/icon/MenuIcon-*.png`（生成物已提交，CI 不需要 rsvg-convert）。
+
+### 新增
+
+- `DaemonController` + `DaemonSystem` 协议：守护的检测/启动/重启决策全部可注入测试，12 个新测试只碰假实现，不 spawn、不 kill。
+- `MenuIcon` 渲染层 + 4 个图标测试：18 pt 模板图、1x 与 @2x 双表征、纯黑 alpha、按状态缓存。
+- `scripts/build-apps.sh` 打包单 App 时把 `MenuIcon-*.png` 一并放进 `Contents/Resources`；CI 校验图标资源、`CFBundleIdentifier` 与包内双可执行文件，并对打包后的二进制跑 `--smoke-test`。
+
+### 移除
+
+- `dist/Magpie Tunnel Status.app` 与 `CFBundleIdentifier com.maxim.magpie-tunnel-status`。
+- `MenuState.iconEmoji`（由 `MenuIconState` 取代）。
+
 ## [1.0.0] - 2026-11-14
 
 首个 Swift Package 版本。行为与旧 ad-hoc bash 守护 + 无版本状态 App 完全兼容（配置/状态/日志/URL/菜单不变），唯一有意差异见下。

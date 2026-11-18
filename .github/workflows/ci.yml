@@ -8,7 +8,7 @@ on:
 
 jobs:
   test-and-build:
-    name: Swift tests + app bundles
+    name: Swift tests + app bundle
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -21,14 +21,38 @@ jobs:
       - name: Run tests
         run: swift test
 
-      - name: Build .app bundles
+      - name: Build .app bundle
         run: ./scripts/build-apps.sh
 
-      - name: Verify bundles
+      - name: Verify bundle
         run: |
-          test -x 'dist/Magpie Web 隧道.app/Contents/MacOS/magpie-web-tunnel'
-          test -x 'dist/Magpie Tunnel Status.app/Contents/MacOS/MagpieTunnelStatus'
-          codesign --verify --deep 'dist/Magpie Web 隧道.app'
-          codesign --verify --deep 'dist/Magpie Tunnel Status.app'
-          plutil -lint 'dist/Magpie Web 隧道.app/Contents/Info.plist'
-          plutil -lint 'dist/Magpie Tunnel Status.app/Contents/Info.plist'
+          APP='dist/Magpie Web 隧道.app'
+          test -x "$APP/Contents/MacOS/MagpieTunnelStatus"
+          test -x "$APP/Contents/MacOS/magpie-tunneld"
+          test -f "$APP/Contents/Resources/AppIcon.icns"
+          test -f "$APP/Contents/Resources/MenuIcon-healthy.png"
+          test -f "$APP/Contents/Resources/MenuIcon-degraded.png"
+          test -f "$APP/Contents/Resources/MenuIcon-healthy@2x.png"
+          test -f "$APP/Contents/Resources/MenuIcon-degraded@2x.png"
+          codesign --verify --deep "$APP"
+          plutil -lint "$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist" \
+            | grep -x 'com.maxim.magpie-web-tunnel'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$APP/Contents/Info.plist" \
+            | grep -x 'AppIcon'
+          test ! -e 'dist/Magpie Tunnel Status.app'
+
+      - name: Smoke test the packaged binaries
+        run: |
+          TMP="$(mktemp -d)"
+          mkdir -p "$TMP/status"
+          printf 'alpha|3430|localhost|3430|deadbeef\n' > "$TMP/targets.conf"
+          MAGPIE_TUNNEL_CONFIG="$TMP/targets.conf" \
+          MAGPIE_TUNNEL_STATUS_DIR="$TMP/status" \
+          MAGPIE_TUNNEL_LOG_DIR="$TMP/logs" \
+          MAGPIE_TUNNEL_LOCK_DIR="$TMP/lock" \
+            'dist/Magpie Web 隧道.app/Contents/MacOS/MagpieTunnelStatus' --smoke-test \
+            | tee "$TMP/out.txt"
+          grep -q 'icon=' "$TMP/out.txt"
+          grep -q 'magpie 隧道' "$TMP/out.txt"
+          ! grep -q '?key=' "$TMP/out.txt"

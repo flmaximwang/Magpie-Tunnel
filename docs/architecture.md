@@ -8,7 +8,8 @@ targets.conf ──解析──▶ [TargetConfig] ──守护进程 magpie-tunn
                      status/<名字>  up|<epoch>|port=<p>            magpie-web-tunnel-<名字>.log
                              │
                              ▼  ~10s 轮询
-                     MagpieTunnelStatus 菜单栏：🔗/🔗⃠ + ✓/✗ + 操作
+                     MagpieTunnelStatus 菜单栏：喜鹊图标（尾羽断裂=异常）+ ✓/✗ + 操作
+                     （就是 Magpie Web 隧道.app 本身；打开时拉起包内 magpie-tunneld）
 ```
 
 ## Swift Package 布局
@@ -34,11 +35,20 @@ Sources/magpie-tunneld/          # 隧道守护进程（打包成 Magpie Web 隧
 │                                #   20s 差量 reload（按名字 diff：增/删/改/不动）
 └── main.swift                   #   入口
 
-Sources/MagpieTunnelStatus/      # 菜单栏状态 App（Magpie Tunnel Status.app）
-├── MenuStateBuilder.swift       #   纯模型：摘要 "magpie 隧道 X/Y"、✓/✗ 行、🔗/🔗⃠
+Sources/MagpieTunnelStatus/      # 菜单栏入口（Magpie Web 隧道.app 的 CFBundleExecutable）
+├── MenuStateBuilder.swift       #   纯模型：摘要 "magpie 隧道 X/Y"、✓/✗ 行、MenuIconState
+├── MenuIcon.swift               #   菜单栏模板图：读 MenuIcon-<state>.png，缺失时用绘制兜底
+├── DaemonController.swift       #   包内守护的生命周期：打开即起、重启=先停再起、退出不动它
 ├── StatusViewModel.swift        #   读配置 + 状态目录 → MenuState（配置缺失回退默认值）
 ├── AppDelegate.swift            #   NSStatusItem/NSMenu 接线 + 五个操作动作
 └── main.swift                   #   CLI/env 路径覆盖 + --smoke-test 无头模式
+
+resources/icon/                  # 图标唯一来源（SVG）+ 生成的模板 PNG
+├── app-icon.svg                 #   Finder 图标（浅灰圆角底 + 石墨拱门 + 喜鹊 + 蓝绿尾羽）
+├── menu-icon-healthy.svg        #   菜单栏模板图：尾羽贯穿门洞
+├── menu-icon-degraded.svg       #   菜单栏模板图：尾羽在门洞中断开
+└── MenuIcon-*.png               #   build-icon.sh 生成，已提交
+scripts/build-icon.sh            # SVG → resources/AppIcon.icns + MenuIcon PNG（平时不用跑）
 ```
 
 ## 关键设计决策
@@ -58,6 +68,9 @@ ssh 的 stdout/stderr 直接 `dup2` 到该隧道的日志文件（与旧版 `>> 
 **菜单栏 App 如何做到无头可测？**
 内容决策全部在 `MenuStateBuilder`（纯函数）与 `StatusViewModel`（只碰文件系统）；`AppDelegate` 只做 NSMenu 渲染。`--smoke-test` 模式不创建 `NSStatusItem`，直接打印菜单内容退出 —— CI 没有 WindowServer 也能验证端到端渲染。
 
+**为什么合成一个 App，守护却仍是独立进程？**
+菜单栏 UI 崩了不该带走隧道，隧道崩了也不该带走状态显示，所以守护依旧是自己一个进程（`Contents/MacOS/magpie-tunneld`），只是打包进同一个 bundle。App 打开时 `DaemonController.startIfNeeded()` 通过 flock PID 文件判断是否已有守护在跑，没有才 spawn —— 重复打开 App 不会起第二个守护。退出菜单栏不杀子进程，隧道继续跑（与旧版两 App 的行为一致）。"重启隧道守护"就是 `terminate` + 重新 spawn，全程在后台队列做，菜单栏不会卡住。
+
 **单实例与旧锁共存？**
 新锁是 `tunneld.lock` 文件上的 flock；启动时若发现旧版 `tunnel.lock` **目录锁**里有活着的 pid（旧 bash 守护还在跑）同样拒绝启动，pid 已死则清掉目录锁继续 —— 旧→新滚动升级不会出现双守护。
 
@@ -76,6 +89,6 @@ ssh 的 stdout/stderr 直接 `dup2` 到该隧道的日志文件（与旧版 `>> 
 
 - **MagpieTunnelCoreTests（51 个）**：解析/序列化字节级往返、URL 不变量、状态原子写、日志轮转、锁竞争、TCP 探测（真实 `/usr/bin/nc -l` 监听）、路径布局与环境变量
 - **MagpieTunnelDaemonTests（7 个）**：黑盒拉起真实构建的二进制 + mock ssh 脚本 + 随机空闲端口；覆盖就绪/SIGTERM 无孤儿/断线重连/差量 reload/换配置重启/双实例拒绝/失败退避
-- **MagpieTunnelStatusTests（13 个）**：菜单模型全状态矩阵、ViewModel 文件驱动刷新、二进制 `--smoke-test` 端到端输出
+- **MagpieTunnelStatusTests（29 个）**：菜单模型全状态矩阵（含 `MenuIconState`）、ViewModel 文件驱动刷新、`DaemonController` 起停决策（假 `DaemonSystem`，不 spawn 不 kill）、图标资源（18 pt 模板图 + 1x/@2x 双表征 + 纯黑 alpha + 缓存复用）、二进制 `--smoke-test` 端到端输出
 
 所有集成测试只用临时目录、mock ssh、随机端口，绝不触碰真实的 `~/Library/Application Support/MagpieWebTunnel`、`~/Applications` 或生产隧道。

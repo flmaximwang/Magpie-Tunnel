@@ -66,7 +66,7 @@ let options = StatusOptions.parse(CommandLine.arguments)
 if options.smokeTest {
     let viewModel = StatusViewModel(paths: options.resolvedPaths())
     let state = viewModel.refresh()
-    print(state.iconEmoji + " " + state.summaryTitle)
+    print("icon=\(state.iconState.rawValue) \(state.summaryTitle)")
     for row in state.targetRows {
         print(row.title + " → " + row.url)
     }
@@ -76,8 +76,10 @@ if options.smokeTest {
     exit(0)
 }
 
+let paths = options.resolvedPaths()
 let app = NSApplication.shared
-let delegate = AppDelegate(viewModel: StatusViewModel(paths: options.resolvedPaths()),
-                           refreshInterval: options.refreshInterval)
+let delegate = AppDelegate(viewModel: StatusViewModel(paths: paths),
+                           refreshInterval: options.refreshInterval,
+                           daemon: DaemonController(paths: paths))
 app.delegate = delegate
 app.run()

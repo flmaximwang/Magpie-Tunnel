@@ -1,7 +1,13 @@
 #!/bin/bash
-# Build the two .app bundles into dist/:
-#   dist/Magpie Web 隧道.app     — magpie-tunneld 隧道守护 (LSUIElement 后台运行)
-#   dist/Magpie Tunnel Status.app — MagpieTunnelStatus 菜单栏状态 (LSUIElement)
+# Build ONE macOS app bundle into dist/:
+#
+#   dist/Magpie Web 隧道.app   — menu-bar entry (CFBundleExecutable) plus the
+#                                bundled `magpie-tunneld` daemon in Contents/MacOS
+#
+# The daemon is a plain child process of the menu-bar app: opening the app
+# starts it (if not already running), the menu's restart action stops and
+# starts it, and quitting the app leaves it running — the tunnels keep serving.
+#
 # Ad-hoc codesign (codesign -s -), no developer certificate needed.
 set -euo pipefail
 
@@ -33,20 +39,27 @@ if [[ -z "$PRODUCTS_DIR" ]]; then
 fi
 echo "==> 使用构建产物: $PRODUCTS_DIR"
 
-TUNNEL_APP="$DIST/Magpie Web 隧道.app"
-STATUS_APP="$DIST/Magpie Tunnel Status.app"
+APP="$DIST/Magpie Web 隧道.app"
+LEGACY_STATUS_APP="$DIST/Magpie Tunnel Status.app"
 
 echo "==> 重建 $DIST"
-rm -rf "$TUNNEL_APP" "$STATUS_APP"
-mkdir -p "$TUNNEL_APP/Contents/MacOS" "$TUNNEL_APP/Contents/Resources" \
-         "$STATUS_APP/Contents/MacOS"
+rm -rf "$APP" "$LEGACY_STATUS_APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-install -m 0755 "$PRODUCTS_DIR/MagpieTunnelDaemon" "$TUNNEL_APP/Contents/MacOS/magpie-web-tunnel"
-install -m 0644 "$REPO/resources/AppIcon.icns" "$TUNNEL_APP/Contents/Resources/AppIcon.icns"
+# Menu-bar app is the bundle's main executable; the daemon ships beside it so
+# DaemonController.bundledDaemonPath() finds it at Contents/MacOS/magpie-tunneld.
+install -m 0755 "$PRODUCTS_DIR/MagpieTunnelStatus" "$APP/Contents/MacOS/MagpieTunnelStatus"
+install -m 0755 "$PRODUCTS_DIR/MagpieTunnelDaemon" "$APP/Contents/MacOS/magpie-tunneld"
 
-install -m 0755 "$PRODUCTS_DIR/MagpieTunnelStatus" "$STATUS_APP/Contents/MacOS/MagpieTunnelStatus"
+install -m 0644 "$REPO/resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+for state in healthy degraded; do
+  install -m 0644 "$REPO/resources/icon/MenuIcon-$state.png" \
+                  "$APP/Contents/Resources/MenuIcon-$state.png"
+  install -m 0644 "$REPO/resources/icon/MenuIcon-$state@2x.png" \
+                  "$APP/Contents/Resources/MenuIcon-$state@2x.png"
+done
 
-cat > "$TUNNEL_APP/Contents/Info.plist" <<PLIST
+cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -56,7 +69,7 @@ cat > "$TUNNEL_APP/Contents/Info.plist" <<PLIST
 	<key>CFBundleDisplayName</key>
 	<string>Magpie Web 隧道</string>
 	<key>CFBundleExecutable</key>
-	<string>magpie-web-tunnel</string>
+	<string>MagpieTunnelStatus</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
@@ -65,37 +78,6 @@ cat > "$TUNNEL_APP/Contents/Info.plist" <<PLIST
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>Magpie Web 隧道</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$VERSION</string>
-	<key>CFBundleVersion</key>
-	<string>$BUILD_NUMBER</string>
-	<key>LSUIElement</key>
-	<true/>
-	<key>NSHighResolutionCapable</key>
-	<true/>
-</dict>
-</plist>
-PLIST
-
-cat > "$STATUS_APP/Contents/Info.plist" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>zh_CN</string>
-	<key>CFBundleDisplayName</key>
-	<string>Magpie 隧道状态</string>
-	<key>CFBundleExecutable</key>
-	<string>MagpieTunnelStatus</string>
-	<key>CFBundleIdentifier</key>
-	<string>com.maxim.magpie-tunnel-status</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>MagpieTunnelStatus</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -113,10 +95,11 @@ cat > "$STATUS_APP/Contents/Info.plist" <<PLIST
 PLIST
 
 echo "==> ad-hoc codesign"
-codesign --force --sign - "$TUNNEL_APP"
-codesign --force --sign - "$STATUS_APP"
+codesign --force --sign - "$APP"
 
 echo "==> 完成"
-codesign --verify --deep "$TUNNEL_APP" && codesign --verify --deep "$STATUS_APP"
-echo "    $TUNNEL_APP"
-echo "    $STATUS_APP"
+codesign --verify --deep "$APP"
+plutil -lint "$APP/Contents/Info.plist" >/dev/null
+echo "    $APP"
+echo "    ├─ Contents/MacOS/MagpieTunnelStatus  (菜单栏)"
+echo "    └─ Contents/MacOS/magpie-tunneld      (隧道守护)"
