@@ -16,7 +16,7 @@ SRC="$REPO/resources/icon"
 
 for tool in rsvg-convert iconutil sips; do
   if ! command -v "$tool" >/dev/null 2>&1; then
-    echo "error: 需要 $tool（rsvg-convert 可用 brew install librsvg 安装）" >&2
+    echo "error: 需要 ${tool}（rsvg-convert 可用 brew install librsvg 安装）" >&2
     exit 1
   fi
 done

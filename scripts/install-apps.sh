@@ -54,7 +54,7 @@ echo "==> 已安装 $DST"
 if [[ -d "$LEGACY_STATUS" ]]; then
   cat <<NOTE
 
-⚠  发现旧版独立的「$LEGACY_STATUS」。
+⚠  发现旧版独立的「${LEGACY_STATUS}」。
    新版把菜单栏和隧道守护合并成一个 App，旧的可以直接删除（不删也不会自动启动）：
      rm -rf '$LEGACY_STATUS'
 NOTE
