@@ -46,9 +46,12 @@ jobs:
       - name: Package zip
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          ditto -c -k --sequesterRsrc --keepParent 'dist/Magpie Web 隧道.app' \
-            "dist/Magpie-Web-Tunnel-${VERSION}.zip"
-          shasum -a 256 "dist/Magpie-Web-Tunnel-${VERSION}.zip" | tee dist/SHA256SUMS.txt
+          NAME="Magpie-Web-Tunnel-${VERSION}.zip"
+          ditto -c -k --sequesterRsrc --keepParent 'dist/Magpie Web 隧道.app' "dist/$NAME"
+          # Checksums must name the files as a downloader sees them (flat, next
+          # to the zip), not dist/-prefixed paths that only exist in this repo.
+          ( cd dist && shasum -a 256 "$NAME" > SHA256SUMS.txt )
+          cat dist/SHA256SUMS.txt
 
       - name: Create GitHub Release
         env:
