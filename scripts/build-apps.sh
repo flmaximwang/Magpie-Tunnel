@@ -33,19 +33,26 @@ fi
 # the ${a[@]+...} guard is the portable way to expand it only when non-empty.
 swift build -c "$CONFIGURATION" ${ARCH_ARGS[@]+"${ARCH_ARGS[@]}"}
 
-# SPM 6.4 puts products under .build/out/Products/<Config>/ (product names,
-# not target names); older layouts keep .build/<config>/. Probe both.
+# Ask SPM where it put the products instead of guessing: the layout differs
+# between toolchains (`.build/out/Products/<Config>/` on SwiftPM 6.4,
+# `.build/apple/Products/Release/` for older universal builds,
+# `.build/<triple>/<config>/` for plain ones). The probe below stays as a fallback.
+BIN_PATH="$(swift build -c "$CONFIGURATION" ${ARCH_ARGS[@]+"${ARCH_ARGS[@]}"} --show-bin-path 2>/dev/null || true)"
+
 PRODUCTS_DIR=""
-for candidate in ".build/out/Products/$CONFIGURATION" \
+for candidate in "$BIN_PATH" \
+                  ".build/out/Products/$CONFIGURATION" \
+                  ".build/apple/Products/Release" \
                   ".build/$CONFIGURATION" \
                   ".build/arm64-apple-macosx/$CONFIGURATION"; do
+  [[ -n "$candidate" ]] || continue
   if [[ -x "$candidate/MagpieTunnelDaemon" && -x "$candidate/MagpieTunnelStatus" ]]; then
     PRODUCTS_DIR="$candidate"
     break
   fi
 done
 if [[ -z "$PRODUCTS_DIR" ]]; then
-  echo "error: 找不到构建产物 MagpieTunnelDaemon/MagpieTunnelStatus (搜索了 .build)" >&2
+  echo "error: 找不到构建产物 MagpieTunnelDaemon/MagpieTunnelStatus (bin path: ${BIN_PATH:-<unknown>})" >&2
   exit 1
 fi
 echo "==> 使用构建产物: $PRODUCTS_DIR"
