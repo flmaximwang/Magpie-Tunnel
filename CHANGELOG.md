@@ -2,7 +2,7 @@
 
 本项目的所有显著变更记录在此。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
-## [未发布]
+## [1.1.0] - 2026-11-19
 
 ### 变更
 
@@ -21,6 +21,13 @@
 
 - `dist/Magpie Tunnel Status.app` 与 `CFBundleIdentifier com.maxim.magpie-tunnel-status`。
 - `MenuState.iconEmoji`（由 `MenuIconState` 取代）。
+
+### 升级
+
+- `./scripts/build-apps.sh && ./scripts/install-apps.sh --force`，然后打开 `Magpie Web 隧道.app`。
+- 首次启动会把旧的 bash 守护替换掉：先停旧进程（其 EXIT trap 会清掉 ssh 子进程），再由新 App 拉起包内 `magpie-tunneld`；`targets.conf`、`status/`、日志文件原地复用。
+- 旧的 `Magpie Tunnel Status.app` 与它的登录项可以删除（安装脚本会提示路径；登录项用 `系统设置 → 通用 → 登录项` 移除）。
+- 最低系统版本从 macOS 12 起（此前的 `LSMinimumSystemVersion` 写的是 11.0，但二进制实际 `minos` 一直是 12.0，二者现已对齐）。
 
 ## [1.0.0] - 2026-11-14
 

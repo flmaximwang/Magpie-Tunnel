@@ -1,0 +1,62 @@
+name: Release
+
+# 由 tag 触发：打上 v* tag 并推送后，自动跑测试、构建通用二进制的 .app、
+# 打包成 zip 并挂到对应的 GitHub Release 上。
+#
+# 产物是 ad-hoc 签名（无开发者证书），内含 arm64 + x86_64 两个架构；
+# 上传的是 ditto 出来的 zip，保留 .app 的符号链接与可执行位。
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and attach .app
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          swift --version
+
+      - name: Run tests
+        run: swift test
+
+      - name: Build universal .app
+        run: MAGPIE_TUNNEL_UNIVERSAL=1 ./scripts/build-apps.sh
+
+      - name: Verify bundle
+        run: |
+          APP='dist/Magpie Web 隧道.app'
+          test -x "$APP/Contents/MacOS/MagpieTunnelStatus"
+          test -x "$APP/Contents/MacOS/magpie-tunneld"
+          codesign --verify --deep --strict "$APP"
+          plutil -lint "$APP/Contents/Info.plist"
+          VERSION="${GITHUB_REF_NAME#v}"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" \
+            | grep -x "$VERSION"
+          lipo -info "$APP/Contents/MacOS/MagpieTunnelStatus" | grep -q x86_64
+          lipo -info "$APP/Contents/MacOS/MagpieTunnelStatus" | grep -q arm64
+
+      - name: Package zip
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          ditto -c -k --sequesterRsrc --keepParent 'dist/Magpie Web 隧道.app' \
+            "dist/Magpie-Web-Tunnel-${VERSION}.zip"
+          shasum -a 256 "dist/Magpie-Web-Tunnel-${VERSION}.zip" | tee dist/SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/Magpie-Web-Tunnel-${VERSION}.zip" \
+            dist/SHA256SUMS.txt \
+            --title "Magpie Web 隧道 $VERSION" \
+            --generate-notes

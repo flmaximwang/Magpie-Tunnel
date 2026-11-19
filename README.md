@@ -14,6 +14,12 @@
 
 ## 快速开始
 
+### 安装发布版
+
+从 [Releases](https://github.com/flmaximwang/Magpie-Tunnel/releases) 下载 `Magpie-Web-Tunnel-<版本>.zip`，解压后把 `Magpie Web 隧道.app` 拖进 `~/Applications`（或 `/Applications`），双击打开即可。产物是 ad-hoc 签名（首次打开若被拦，右键 → 打开），内含 arm64 与 x86_64 两个架构。
+
+### 从源码
+
 ```bash
 # 测试 + 构建
 swift test
@@ -78,10 +84,11 @@ ZLab4090D|3431|wangfanlin1@100.68.85.3|3430|
 - 每条隧道日志：`~/Library/Logs/magpie-web-tunnel-<名字>.log`（SSH 自身输出）
 - 状态文件：`~/Library/Application Support/MagpieWebTunnel/status/<名字>`（`up|<epoch>|port=<p>` / `down|<epoch>|<原因>`）
 - 单实例锁：`~/Library/Application Support/MagpieWebTunnel/tunneld.lock`（flock；同时识别旧版 `tunnel.lock` 目录锁）
+- 发版：`git tag v<版本> && git push --tags` 会触发 `.github/workflows/release.yml`，跑测试、构建通用二进制、打 zip 并自动创建 GitHub Release；版本号默认值在 `scripts/build-apps.sh` 顶部
 
 ## 兼容性保证
 
 - 从旧版升级：直接 `./scripts/install-apps.sh --force`，然后打开 App 点「重启隧道守护」。配置、日志、状态文件原地复用；旧的两 App 布局可整体删除（安装脚本会提示）
 - 旧 bash 守护的 ssh 参数、重连节奏（5s 起步指数退避、上限 60s）、状态文案（`端口未就绪` / `ssh 启动失败` / `ssh 断开 rc=<n>` / `配置移除` / `守护退出`）逐项对齐
 - 唯一有意的行为差异：旧版配置 reload 时**重启所有**隧道；新版差量处理
-- macOS 11+，Swift Package Manager，`swift build` 即可出产物，ad-hoc 签名无需开发者证书
+- macOS 12+，Swift Package Manager，`swift build` 即可出产物，ad-hoc 签名无需开发者证书

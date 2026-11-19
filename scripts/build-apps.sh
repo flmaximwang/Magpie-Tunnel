@@ -14,13 +14,24 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO="$(pwd)"
 
-VERSION="${MAGPIE_TUNNEL_VERSION:-1.0}"
-BUILD_NUMBER="${MAGPIE_TUNNEL_BUILD:-1}"
+VERSION="${MAGPIE_TUNNEL_VERSION:-1.1.0}"
+BUILD_NUMBER="${MAGPIE_TUNNEL_BUILD:-2}"
 CONFIGURATION="${MAGPIE_TUNNEL_CONFIGURATION:-release}"
+# UNIVERSAL=1 builds arm64 + x86_64 so the release artifact runs on Intel Macs
+# too; the default stays native-only, which keeps local iteration fast.
+UNIVERSAL="${MAGPIE_TUNNEL_UNIVERSAL:-0}"
 DIST="$REPO/dist"
 
-echo "==> swift build -c $CONFIGURATION"
-swift build -c "$CONFIGURATION"
+ARCH_ARGS=()
+if [[ "$UNIVERSAL" == "1" ]]; then
+  ARCH_ARGS=(--arch arm64 --arch x86_64)
+  echo "==> swift build -c $CONFIGURATION (arm64 + x86_64)"
+else
+  echo "==> swift build -c $CONFIGURATION"
+fi
+# macOS ships bash 3.2, where "${a[@]}" on an empty array trips `set -u`;
+# the ${a[@]+...} guard is the portable way to expand it only when non-empty.
+swift build -c "$CONFIGURATION" ${ARCH_ARGS[@]+"${ARCH_ARGS[@]}"}
 
 # SPM 6.4 puts products under .build/out/Products/<Config>/ (product names,
 # not target names); older layouts keep .build/<config>/. Probe both.
@@ -85,7 +96,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 	<key>CFBundleVersion</key>
 	<string>$BUILD_NUMBER</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>11.0</string>
+	<string>12.0</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSHighResolutionCapable</key>
@@ -95,6 +106,12 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 echo "==> ad-hoc codesign"
+# Re-sign the nested daemon binary explicitly. lipo-stitched universal binaries
+# keep only the per-slice linker signature, which does not cover the fat
+# container, so `codesign --verify --deep` rejects them ("code object is not
+# signed at all / In subcomponent: .../magpie-tunneld"). Signing the bundle
+# afterwards seals the freshly signed daemon in CodeResources.
+codesign --force --sign - "$APP/Contents/MacOS/magpie-tunneld"
 codesign --force --sign - "$APP"
 
 echo "==> 完成"
