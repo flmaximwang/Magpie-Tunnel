@@ -44,9 +44,9 @@ Sources/MagpieTunnelStatus/      # 菜单栏入口（Magpie Web 隧道.app 的 C
 └── main.swift                   #   CLI/env 路径覆盖 + --smoke-test 无头模式
 
 resources/icon/                  # 图标唯一来源（SVG）+ 生成的模板 PNG
-├── app-icon.svg                 #   Finder 图标（浅灰圆角底 + 石墨拱门 + 喜鹊 + 蓝绿尾羽）
-├── menu-icon-healthy.svg        #   菜单栏模板图：尾羽贯穿门洞
-├── menu-icon-degraded.svg       #   菜单栏模板图：尾羽在门洞中断开
+├── app-icon.svg                 #   Finder 图标（纯白圆角底 + 石红缎带环 + 蓝黑喜鹊）
+├── menu-icon-healthy.svg        #   菜单栏模板图，尾羽完整
+├── menu-icon-degraded.svg       #   菜单栏模板图，尾羽有缺口
 └── MenuIcon-*.png               #   build-icon.sh 生成，已提交
 scripts/build-icon.sh            # SVG → resources/AppIcon.icns + MenuIcon PNG（平时不用跑）
 ```

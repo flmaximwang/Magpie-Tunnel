@@ -1,13 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
-  <!-- Degraded: identical bird and portal, but the tail stops short.
-       The resulting gap inside the opening is the state signal. -->
-  <path d="M 11 34 L 11 21 A 7 7 0 0 1 25 21 L 25 34"
+  <!-- The gap in the diagonal tail signals a degraded tunnel at 18 px. -->
+  <path d="M 5 30 V 17 A 13 13 0 0 1 31 17 V 30"
         fill="none" stroke="#000" stroke-width="3.2" stroke-linecap="round"/>
-
-  <ellipse cx="17.8" cy="10.6" rx="4.8" ry="3.5" transform="rotate(-24 17.8 10.6)" fill="#000"/>
-  <circle cx="23.4" cy="6.2" r="2.5" fill="#000"/>
-  <path d="M 25.2 5.1 L 29.6 3.7 L 25.9 7.2 Z" fill="#000"/>
-
-  <!-- Tail: cut at ~45% of the opening height -->
-  <path d="M 18.4 12.4 L 17.7 21.0 L 20.2 21.2 L 20.9 13 Z" fill="#000"/>
+  <path d="M 10 10 L 18.4 15.6 L 20.3 12.9
+           Q 22.4 9.9 25.1 12.5 L 27 12.6 L 25.7 15
+           Q 24.5 20.9 18.9 22.4 L 17.9 23.1 L 14.4 20.5 L 15 19.8
+           Q 11.2 16.3 10 10 Z
+           M 11.7 24.5 L 14.1 26 L 10 29 Z" fill="#000"/>
 </svg>

@@ -1,48 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <defs>
-    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FCFDFF"/>
-      <stop offset="0.5" stop-color="#EEF1F6"/>
-      <stop offset="1" stop-color="#D7DDE7"/>
-    </linearGradient>
-    <linearGradient id="portal" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#8E97A3"/>
-      <stop offset="1" stop-color="#4A515B"/>
-    </linearGradient>
-    <linearGradient id="tail" x1="0" y1="0" x2="0.8" y2="1">
-      <stop offset="0" stop-color="#54D2C0"/>
-      <stop offset="0.42" stop-color="#2E9CAF"/>
-      <stop offset="1" stop-color="#1A5A7D"/>
-    </linearGradient>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 48 48">
+  <rect x="4.5" y="5" width="39" height="39" rx="9" fill="#DDD9D3"/>
+  <rect x="4.5" y="4.5" width="39" height="39" rx="9" fill="#FFF"/>
+  <g transform="translate(7.15 5.85) scale(.028)">
+    <!-- One continuous ribbon. Its lower sweep returns in front of the tail. -->
+    <defs>
+      <path id="ribbon" d="M1008 511 C970 285 828 132 613 135
+             C348 139 144 365 137 599 C129 850 292 1041 520 1124
+             C649 1170 752 1161 854 1208 L937 956
+             C795 995 681 992 561 951 C381 892 264 769 268 602
+             C271 424 416 252 615 244 C778 238 911 336 956 539 Z"/>
+      <clipPath id="foreground-sweep"><rect x="0" y="825" width="990" height="390"/></clipPath>
+    </defs>
+    <use href="#ribbon" fill="#B65F4C"/>
 
-  <rect x="96" y="96" width="832" height="832" rx="188" fill="url(#plate)"/>
-  <rect x="96" y="96" width="832" height="832" rx="188" fill="none"
-        stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="5"/>
+    <!-- Body and long tail share a contour beneath the separate wing. -->
+    <path d="M82 1170 C252 1078 392 890 561 752
+             Q685 620 823 622 C915 621 943 505 1038 501
+             Q1087 497 1117 536 L1190 566 C1092 577 1054 619 1016 698
+             C945 844 835 920 674 918 C565 914 526 961 448 1035
+             Q273 1197 82 1170 Z" fill="#222425"/>
+    <path d="M236 125 C310 288 456 386 584 469 C692 541 747 602 825 622
+             Q730 687 561 752 C413 739 282 663 214 539 Q244 553 298 559
+             C216 492 160 396 152 300 Q209 366 272 398
+             C223 318 205 210 236 125 Z" fill="#222425"/>
+    <path d="M287 334 C379 413 499 468 577 524 C623 558 657 605 710 639
+             C611 634 525 589 448 521 C382 463 325 390 287 334 Z" fill="#FFF"/>
+    <path d="M454 902 C551 816 615 813 697 763 C785 709 842 683 910 705
+             L913 764 C824 870 741 899 641 890 Q556 868 454 902 Z" fill="#FFF"/>
 
-  <!-- Tunnel portal: legs + crown -->
-  <path d="M 330 806 L 330 606 A 182 182 0 0 1 694 606 L 694 806"
-        fill="none" stroke="url(#portal)" stroke-width="72" stroke-linecap="round"/>
-
-  <!-- Iridescent tail: from the body, down through the portal opening -->
-  <path d="M 592 372
-           C 596 470 578 578 542 678
-           C 566 700 602 706 630 692
-           C 652 596 664 496 664 388 Z" fill="url(#tail)"/>
-
-  <!-- Magpie in profile, perched on the crown -->
-  <path d="M 726 214
-           A 56 56 0 0 1 806 250
-           L 834 246 L 806 292
-           C 806 330 782 356 748 366
-           C 712 376 676 394 648 420
-           C 620 400 590 390 556 388
-           C 586 360 620 338 656 322
-           C 676 272 698 226 726 214 Z" fill="#14171C"/>
-  <!-- Beak -->
-  <path d="M 800 240 L 872 226 L 812 272 Z" fill="#0E1115"/>
-  <!-- White nape field mark -->
-  <path d="M 726 300 C 742 276 768 268 790 280 C 774 304 748 314 726 300 Z" fill="#F8FAFD"/>
-  <!-- Eye -->
-  <circle cx="780" cy="264" r="9" fill="#FFFFFF"/>
+    <use href="#ribbon" fill="#B65F4C" clip-path="url(#foreground-sweep)"/>
+    <!-- The near end turns over the shoulder, with a single darker fold. -->
+    <path d="M832 622 Q848 616 867 608 C966 610 1019 677 1040 758
+             C1059 828 1091 870 1145 901 L973 967
+             C933 915 913 857 905 781 C899 711 904 650 832 622 Z" fill="#B65F4C"/>
+    <path d="M832 622 Q848 616 867 608 C918 631 933 678 932 735
+             Q927 696 906 680 Q891 643 832 622 Z" fill="#904638"/>
+  </g>
 </svg>

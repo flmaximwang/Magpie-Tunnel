@@ -62,53 +62,50 @@ enum MenuIcon {
         return thisFile.components(separatedBy: "/").dropLast(2).joined(separator: "/")
     }
 
-    /// Safety net: if the artwork is missing, draw the same idea in code — an
-    /// arch with a perched bird whose tail fills (healthy) or splits (degraded)
-    /// the opening — so the status item never renders empty.
+    /// Draw the SVG silhouettes in their 36-unit coordinate space if the PNGs
+    /// are missing, including the tail gap for the degraded state.
     private static func fallbackImage(for state: MenuIconState) -> NSImage {
-        let image = NSImage(size: pointSize, flipped: false) { rect in
-            NSColor.black.setStroke()
-            NSColor.black.setFill()
+        NSImage(size: pointSize, flipped: true) { rect in
+            guard let context = NSGraphicsContext.current?.cgContext else { return false }
+            context.saveGState()
+            defer { context.restoreGState() }
+            context.translateBy(x: rect.minX, y: rect.minY)
+            context.scaleBy(x: rect.width / 36, y: rect.height / 36)
+            context.setStrokeColor(gray: 0, alpha: 1)
+            context.setFillColor(gray: 0, alpha: 1)
+            context.setLineWidth(3.2)
+            context.setLineCap(.round)
 
-            // Portal: two legs and a rounded crown.
-            let arch = NSBezierPath()
-            arch.move(to: NSPoint(x: rect.minX + rect.width * 0.27, y: rect.maxY))
-            arch.line(to: NSPoint(x: rect.minX + rect.width * 0.27, y: rect.maxY - rect.height * 0.42))
-            arch.appendArc(withCenter: NSPoint(x: rect.midX, y: rect.maxY - rect.height * 0.42),
-                           radius: rect.width * 0.23, startAngle: 180, endAngle: 0)
-            arch.line(to: NSPoint(x: rect.minX + rect.width * 0.73, y: rect.maxY))
-            arch.lineWidth = rect.width * 0.09
-            arch.lineCapStyle = .round
-            arch.stroke()
+            context.move(to: CGPoint(x: 5, y: 30))
+            context.addLine(to: CGPoint(x: 5, y: 17))
+            context.addArc(center: CGPoint(x: 18, y: 17), radius: 13,
+                           startAngle: .pi, endAngle: 2 * .pi, clockwise: false)
+            context.addLine(to: CGPoint(x: 31, y: 30))
+            context.strokePath()
 
-            // Bird: body + head on the crown.
-            let body = NSBezierPath(ovalIn: NSRect(x: rect.minX + rect.width * 0.37,
-                                                   y: rect.maxY - rect.height * 0.42,
-                                                   width: rect.width * 0.34,
-                                                   height: rect.height * 0.26))
-            body.fill()
-            let head = NSBezierPath(ovalIn: NSRect(x: rect.minX + rect.width * 0.63,
-                                                   y: rect.maxY - rect.height * 0.36,
-                                                   width: rect.width * 0.19,
-                                                   height: rect.height * 0.19))
-            head.fill()
-
-            // Tail: solid when healthy, split in two when degraded.
-            let segments: [(CGFloat, CGFloat)] = state == .healthy
-                ? [(0.90, 1.0)]
-                : [(0.76, 0.88), (0.99, 1.0)]
-            for (from, to) in segments {
-                let feather = NSBezierPath()
-                feather.move(to: NSPoint(x: rect.minX + rect.width * 0.50,
-                                         y: rect.maxY - rect.height * from))
-                feather.line(to: NSPoint(x: rect.minX + rect.width * 0.56,
-                                         y: rect.maxY - rect.height * to))
-                feather.lineWidth = rect.width * 0.11
-                feather.lineCapStyle = .round
-                feather.stroke()
+            context.move(to: CGPoint(x: 10, y: 10))
+            context.addLine(to: CGPoint(x: 18.4, y: 15.6))
+            context.addLine(to: CGPoint(x: 20.3, y: 12.9))
+            context.addQuadCurve(to: CGPoint(x: 25.1, y: 12.5), control: CGPoint(x: 22.4, y: 9.9))
+            context.addLine(to: CGPoint(x: 27, y: 12.6))
+            context.addLine(to: CGPoint(x: 25.7, y: 15))
+            context.addQuadCurve(to: CGPoint(x: 18.9, y: 22.4), control: CGPoint(x: 24.5, y: 20.9))
+            if state == .healthy {
+                context.addLine(to: CGPoint(x: 10, y: 29))
+                context.addLine(to: CGPoint(x: 12.3, y: 23))
+            } else {
+                context.addLine(to: CGPoint(x: 17.9, y: 23.1))
+                context.addLine(to: CGPoint(x: 14.4, y: 20.5))
             }
+            context.addLine(to: CGPoint(x: 15, y: 19.8))
+            context.addQuadCurve(to: CGPoint(x: 10, y: 10), control: CGPoint(x: 11.2, y: 16.3))
+            context.closePath()
+            if state == .degraded {
+                context.addLines(between: [CGPoint(x: 11.7, y: 24.5), CGPoint(x: 14.1, y: 26), CGPoint(x: 10, y: 29)])
+                context.closePath()
+            }
+            context.fillPath()
             return true
         }
-        return image
     }
 }
