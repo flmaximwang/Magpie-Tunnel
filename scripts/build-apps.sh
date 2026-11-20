@@ -15,7 +15,7 @@ cd "$(dirname "$0")/.."
 REPO="$(pwd)"
 
 VERSION="${MAGPIE_TUNNEL_VERSION:-1.2.0}"
-BUILD_NUMBER="${MAGPIE_TUNNEL_BUILD:-3}"
+BUILD_NUMBER="${MAGPIE_TUNNEL_BUILD:-4}"
 CONFIGURATION="${MAGPIE_TUNNEL_CONFIGURATION:-release}"
 # UNIVERSAL=1 builds arm64 + x86_64 so the release artifact runs on Intel Macs
 # too; the default stays native-only, which keeps local iteration fast.

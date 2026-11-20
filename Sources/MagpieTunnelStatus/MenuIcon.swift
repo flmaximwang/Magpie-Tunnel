@@ -73,15 +73,28 @@ enum MenuIcon {
             context.scaleBy(x: rect.width / 36, y: rect.height / 36)
             context.setStrokeColor(gray: 0, alpha: 1)
             context.setFillColor(gray: 0, alpha: 1)
-            context.setLineWidth(3.2)
-            context.setLineCap(.round)
 
-            context.move(to: CGPoint(x: 5, y: 30))
-            context.addLine(to: CGPoint(x: 5, y: 17))
+            // Rounded-square portal frame: outer rounded square, inner arch on
+            // the old stroke centreline, round-cap pillar feet (each pillar
+            // symmetric about its own axis). One connected loop, filled.
+            context.move(to: CGPoint(x: 10, y: 1))
+            context.addLine(to: CGPoint(x: 26, y: 1))
+            context.addArc(center: CGPoint(x: 26, y: 10), radius: 9,
+                           startAngle: -.pi / 2, endAngle: 0, clockwise: false)
+            context.addLine(to: CGPoint(x: 35, y: 33))
+            context.addArc(center: CGPoint(x: 33, y: 33), radius: 2,
+                           startAngle: 0, endAngle: .pi, clockwise: false)
+            context.addLine(to: CGPoint(x: 31, y: 17))
             context.addArc(center: CGPoint(x: 18, y: 17), radius: 13,
-                           startAngle: .pi, endAngle: 2 * .pi, clockwise: false)
-            context.addLine(to: CGPoint(x: 31, y: 30))
-            context.strokePath()
+                           startAngle: 0, endAngle: .pi, clockwise: true)
+            context.addLine(to: CGPoint(x: 5, y: 33))
+            context.addArc(center: CGPoint(x: 3, y: 33), radius: 2,
+                           startAngle: 0, endAngle: .pi, clockwise: false)
+            context.addLine(to: CGPoint(x: 1, y: 10))
+            context.addArc(center: CGPoint(x: 10, y: 10), radius: 9,
+                           startAngle: .pi, endAngle: 3 * .pi / 2, clockwise: false)
+            context.closePath()
+            context.fillPath()
 
             context.move(to: CGPoint(x: 10, y: 10))
             context.addLine(to: CGPoint(x: 18.4, y: 15.6))
