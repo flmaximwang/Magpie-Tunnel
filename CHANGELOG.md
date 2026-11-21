@@ -2,13 +2,17 @@
 
 本项目的所有显著变更记录在此。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
-## [未发布]
+## [1.2.1] - 2026-11-21
 
 ### 变更
 
 - **菜单栏门洞拓宽为圆角方形门框**：外轮廓改为占满 36×36 画布的圆角方形（上角 R9），内轮廓沿用原拱门描边中心线（腿 x5/31、冠 r13），墨迹从 30×30 增至 34×34，菜单栏里更饱满。柱脚保留原 round linecap 语言：半圆帽 r2（柱宽 4 的一半），每根柱子自身左右对称。喜鹊剪影与降级态断尾缺口逐字未动。
 - `MenuIcon` 代码兜底同步改为填充该门框单连通路径（不再描边旧拱门）。
-- `CFBundleVersion` 3 → 4（未发布构建；`CFBundleShortVersionString` 仍 1.2.0）。
+- `CFBundleVersion` 4 → 5。
+
+### 升级
+
+- `./scripts/build-apps.sh && ./scripts/install-apps.sh --force`，然后在菜单栏点「重启隧道守护」。菜单栏里若没看到图标，点开右侧的 `«` 折叠区，⌘-拖到想要的位置。
 
 ## [1.2.0] - 2026-11-20
 
