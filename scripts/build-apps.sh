@@ -18,8 +18,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO="$(pwd)"
 
-VERSION="${MAGPIE_TUNNEL_VERSION:-1.3.0}"
-BUILD_NUMBER="${MAGPIE_TUNNEL_BUILD:-6}"
+VERSION="${MAGPIE_TUNNEL_VERSION:-1.3.1}"
+BUILD_NUMBER="${MAGPIE_TUNNEL_BUILD:-7}"
 CONFIGURATION="${MAGPIE_TUNNEL_CONFIGURATION:-release}"
 # UNIVERSAL=1 builds arm64 + x86_64 so the release artifact runs on Intel Macs
 # too; the default stays native-only, which keeps local iteration fast.

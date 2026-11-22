@@ -175,4 +175,22 @@ final class PanelModelTests: XCTestCase {
         XCTAssertEqual(unknown.iconAccessibilityLabel, "Magpie-WebUI-Tunnel：隧道状态未知")
         XCTAssertEqual(PanelState.empty.iconAccessibilityLabel, "Magpie-WebUI-Tunnel：尚未配置隧道")
     }
+
+    func testCanRestartTunnelsMatchesEmptyState() {
+        XCTAssertFalse(PanelState.empty.canRestartTunnels)
+
+        let brokenOnly = PanelStateBuilder.build(targets: [], statuses: [:], diagnostics: ["第 1 行：错误"])
+        XCTAssertFalse(brokenOnly.canRestartTunnels)
+
+        let unreadable = PanelStateBuilder.build(targets: [], statuses: [:], configError: "无法读取")
+        XCTAssertFalse(unreadable.canRestartTunnels)
+
+        let withTunnel = PanelStateBuilder.build(targets: [target("alpha", port: 3430)], statuses: [:])
+        XCTAssertTrue(withTunnel.canRestartTunnels)
+
+        let partialBroken = PanelStateBuilder.build(targets: [target("alpha", port: 3430)],
+                                                    statuses: [:],
+                                                    diagnostics: ["第 2 行：错误"])
+        XCTAssertTrue(partialBroken.canRestartTunnels)
+    }
 }

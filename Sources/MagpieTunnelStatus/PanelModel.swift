@@ -128,6 +128,9 @@ struct PanelState: Equatable {
         return .none
     }
 
+    /// Whether restarting tunnels is meaningful (at least one valid tunnel exists).
+    var canRestartTunnels: Bool { emptyState == .none }
+
     /// One short sentence under the header: what is running, or what is wrong.
     var subtitle: String {
         if let configError { return "配置无法读取：\(configError)" }

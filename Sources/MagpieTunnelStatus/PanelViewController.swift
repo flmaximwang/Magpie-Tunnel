@@ -17,35 +17,136 @@ struct PanelActions {
 }
 
 /// A button that runs a closure, so the panel code has no selector plumbing and
-/// rebuilt rows always capture the URL they were built with.
+/// rebuilt rows always capture the URL they were built with. Supports optional
+/// normal and hover tint colors using an `NSTrackingArea`.
 final class ClosureButton: NSButton {
     private let handler: () -> Void
+    private var hoverTrackingArea: NSTrackingArea?
+    private var isHovered = false
 
-    init(title: String, font: NSFont, enabled: Bool = true, handler: @escaping () -> Void) {
+    var normalTintColor: NSColor? {
+        didSet { updateTintColor() }
+    }
+
+    var hoverTintColor: NSColor? {
+        didSet {
+            if hoverTintColor == nil {
+                isHovered = false
+            }
+            updateTintColor()
+            updateTrackingAreas()
+        }
+    }
+
+    override var isEnabled: Bool {
+        didSet {
+            if !isEnabled {
+                isHovered = false
+            }
+            updateTintColor()
+        }
+    }
+
+    init(title: String,
+         font: NSFont,
+         enabled: Bool = true,
+         normalTintColor: NSColor? = nil,
+         hoverTintColor: NSColor? = nil,
+         handler: @escaping () -> Void) {
         self.handler = handler
+        self.normalTintColor = normalTintColor
+        self.hoverTintColor = hoverTintColor
         super.init(frame: .zero)
         self.title = title
+        self.font = font
+        configureCommon(enabled: enabled)
+    }
+
+    init(image: NSImage?,
+         enabled: Bool = true,
+         normalTintColor: NSColor? = nil,
+         hoverTintColor: NSColor? = nil,
+         handler: @escaping () -> Void) {
+        self.handler = handler
+        self.normalTintColor = normalTintColor
+        self.hoverTintColor = hoverTintColor
+        super.init(frame: .zero)
+        self.image = image
+        self.imagePosition = .imageOnly
+        self.imageScaling = .scaleProportionallyDown
+        configureCommon(enabled: enabled)
+    }
+
+    private func configureCommon(enabled: Bool) {
         self.bezelStyle = .inline
         self.isBordered = false
-        self.font = font
         self.target = self
         self.action = #selector(run)
         self.isEnabled = enabled
         self.setContentHuggingPriority(.required, for: .horizontal)
         self.setContentCompressionResistancePriority(.required, for: .horizontal)
+        updateTintColor()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let existing = hoverTrackingArea {
+            removeTrackingArea(existing)
+            hoverTrackingArea = nil
+        }
+        guard hoverTintColor != nil else { return }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        hoverTrackingArea = area
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil, isHovered {
+            isHovered = false
+            updateTintColor()
+        }
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        super.mouseEntered(with: event)
+        guard isEnabled, hoverTintColor != nil else { return }
+        isHovered = true
+        updateTintColor()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event)
+        guard isHovered else { return }
+        isHovered = false
+        updateTintColor()
+    }
+
+    private func updateTintColor() {
+        if isHovered, isEnabled, let hoverTintColor {
+            contentTintColor = hoverTintColor
+        } else if let normalTintColor {
+            contentTintColor = normalTintColor
+        }
+    }
 
     @objc private func run() { handler() }
 }
 
 /// The compact panel shown from the menu-bar item.
 ///
-/// One header line with the overview, one row per tunnel in configuration
-/// order, and a footer with the two window entries plus a "更多" menu. Actions
-/// that only make sense for a live tunnel are disabled unless it is connected.
+/// One header line with the overview and a restart button, one row per tunnel
+/// in configuration order, and a footer with the two window entries plus a
+/// "退出" button. Actions that only make sense for a live tunnel are disabled
+/// unless it is connected.
 final class PanelViewController: NSViewController {
     private let viewModel: StatusViewModel
     private let actions: PanelActions
@@ -53,10 +154,12 @@ final class PanelViewController: NSViewController {
     private let headerTitleLabel = NSTextField(labelWithString: "")
     private let headerSubtitleLabel = NSTextField(labelWithString: "")
     private let headerIconView = NSImageView()
+    private(set) var restartButton: ClosureButton?
     private let rowsStack = NSStackView()
     private let emptyLabel = NSTextField(labelWithString: "")
     private let emptyButtonHost = NSStackView()
     private let footerStack = NSStackView()
+    private(set) var quitButton: ClosureButton?
 
     static let panelWidth: CGFloat = 360
 
@@ -86,18 +189,36 @@ final class PanelViewController: NSViewController {
         headerTitleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         headerTitleLabel.textColor = .labelColor
         headerTitleLabel.lineBreakMode = .byTruncatingTail
+        headerTitleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         headerSubtitleLabel.font = .systemFont(ofSize: 11)
         headerSubtitleLabel.textColor = .secondaryLabelColor
         headerSubtitleLabel.lineBreakMode = .byTruncatingTail
         headerSubtitleLabel.maximumNumberOfLines = 2
+        headerSubtitleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         let headerText = NSStackView(views: [headerTitleLabel, headerSubtitleLabel])
         headerText.orientation = .vertical
         headerText.alignment = .leading
         headerText.spacing = 1
+        headerText.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let header = NSStackView(views: [headerIconView, headerText])
+        let restartSymbol = NSImage(systemSymbolName: "arrow.clockwise",
+                                    accessibilityDescription: "重启全部隧道")?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 12, weight: .medium))
+        let restart = ClosureButton(image: restartSymbol,
+                                    normalTintColor: .secondaryLabelColor) { [unowned self] in
+            self.actions.restartTunnels()
+        }
+        restart.toolTip = "重启全部隧道 · 现有连接会短暂中断"
+        restart.setAccessibilityLabel("重启全部隧道")
+        restart.translatesAutoresizingMaskIntoConstraints = false
+        self.restartButton = restart
+
+        let headerSpacer = NSView()
+        headerSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        let header = NSStackView(views: [headerIconView, headerText, headerSpacer, restart])
         header.orientation = .horizontal
         header.alignment = .centerY
         header.spacing = 8
@@ -129,11 +250,15 @@ final class PanelViewController: NSViewController {
         let logButton = ClosureButton(title: "隧道日志", font: .systemFont(ofSize: 12)) { [unowned self] in
             self.actions.openLogs()
         }
-        let moreButton = ClosureButton(title: "更多", font: .systemFont(ofSize: 12)) { [unowned self] in
-            self.showMoreMenu(from: self.footerStack)
+        let quit = ClosureButton(title: "退出",
+                                 font: .systemFont(ofSize: 12),
+                                 normalTintColor: .secondaryLabelColor,
+                                 hoverTintColor: .systemRed) { [unowned self] in
+            self.actions.quit()
         }
+        self.quitButton = quit
 
-        footerStack.setViews([configButton, logButton, NSView(), moreButton], in: .leading)
+        footerStack.setViews([configButton, logButton, NSView(), quit], in: .leading)
         footerStack.orientation = .horizontal
         footerStack.alignment = .centerY
         footerStack.spacing = 14
@@ -158,6 +283,8 @@ final class PanelViewController: NSViewController {
             content.bottomAnchor.constraint(equalTo: root.bottomAnchor),
             headerIconView.widthAnchor.constraint(equalToConstant: 16),
             headerIconView.heightAnchor.constraint(equalToConstant: 16),
+            restart.widthAnchor.constraint(equalToConstant: 22),
+            restart.heightAnchor.constraint(equalToConstant: 22),
             root.widthAnchor.constraint(equalToConstant: PanelViewController.panelWidth),
             header.widthAnchor.constraint(equalTo: content.widthAnchor, constant: -28),
             body.widthAnchor.constraint(equalTo: content.widthAnchor, constant: -28),
@@ -187,6 +314,10 @@ final class PanelViewController: NSViewController {
         headerSubtitleLabel.stringValue = state.subtitle
         headerIconView.image = MenuIcon.image(for: state.iconState)
         headerIconView.toolTip = state.iconAccessibilityLabel
+
+        let canRestart = state.canRestartTunnels
+        restartButton?.isEnabled = canRestart
+        restartButton?.normalTintColor = canRestart ? .secondaryLabelColor : .tertiaryLabelColor
 
         guard state != lastRenderedState else { return }
         lastRenderedState = state
@@ -261,36 +392,6 @@ final class PanelViewController: NSViewController {
         let fitting = view.fittingSize
         preferredContentSize = NSSize(width: PanelViewController.panelWidth,
                                       height: max(80, fitting.height))
-    }
-
-    // MARK: - more menu
-
-    private func showMoreMenu(from anchor: NSView) {
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-
-        let restart = NSMenuItem(title: "重启全部隧道", action: nil, keyEquivalent: "")
-        restart.target = self
-        restart.action = #selector(restartTunnels(_:))
-        restart.toolTip = "现有连接会短暂中断"
-        menu.addItem(restart)
-
-        menu.addItem(.separator())
-
-        let quit = NSMenuItem(title: "退出 \(PanelState.appDisplayName)", action: nil, keyEquivalent: "")
-        quit.target = self
-        quit.action = #selector(quitApp(_:))
-        menu.addItem(quit)
-
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: anchor.bounds.height + 2), in: anchor)
-    }
-
-    @objc private func restartTunnels(_ sender: NSMenuItem) {
-        actions.restartTunnels()
-    }
-
-    @objc private func quitApp(_ sender: NSMenuItem) {
-        actions.quit()
     }
 }
 
