@@ -7,6 +7,7 @@ final class PanelViewControllerTests: XCTestCase {
     private var workDir: String!
 
     override func setUpWithError() throws {
+        _ = NSApplication.shared
         workDir = NSTemporaryDirectory() + "magpie-panel-vc-tests-" + UUID().uuidString
         try FileManager.default.createDirectory(atPath: workDir + "/status",
                                                 withIntermediateDirectories: true)
