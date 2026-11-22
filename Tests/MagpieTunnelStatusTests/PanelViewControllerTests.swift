@@ -91,7 +91,7 @@ final class PanelViewControllerTests: XCTestCase {
         vc.refresh()
 
         let restartButton = try XCTUnwrap(vc.restartButton)
-        restartButton.performClick(nil)
+        XCTAssertTrue(restartButton.sendAction(restartButton.action, to: restartButton.target))
         XCTAssertEqual(restartCount, 1)
     }
 
@@ -139,7 +139,7 @@ final class PanelViewControllerTests: XCTestCase {
             XCTAssertEqual(quitButton.contentTintColor, .secondaryLabelColor)
         }
 
-        quitButton.performClick(nil)
+        XCTAssertTrue(quitButton.sendAction(quitButton.action, to: quitButton.target))
         XCTAssertEqual(quitCount, 1)
     }
 }
