@@ -1,0 +1,39 @@
+Analysis of sampling MagpieTunnelStatus (pid 4243) every 1 millisecond
+Process:         MagpieTunnelStatus [4243]
+Path:            /Applications/Fixture.app/Contents/MacOS/MagpieTunnelStatus
+Date/Time:       2026-11-22 02:00:00.000 +0800
+Launch Time:     2026-11-22 01:59:00.000 +0800
+OS Version:      macOS 27.0.1 (26A300)
+Report Version:  7
+
+Analysis Tool: /usr/bin/sample
+
+Call graph:
+    773 Thread_9835301   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 773 start  (in dyld) + 6688  [0x19439fe80]
+    +   773 main  (in MagpieTunnelStatus) + 496  [0x100fa24ec]  main.swift:96
+    +     773 -[NSApplication run]  (in AppKit) + 396  [0x198ddf90c]
+    +       773 -[NSApplication(NSEventRouting) nextEventMatchingMask:untilDate:inMode:dequeue:]  (in AppKit) + 292  [0x19966426c]
+    +         773 _DPSNextEvent  (in AppKit) + 580  [0x198dec4fc]
+    +           773 RunCurrentEventLoopInMode  (in HIToolbox) + 320  [0x1a1c68590]
+    +             773 _CFRunLoopRunSpecificWithOptions  (in CoreFoundation) + 536  [0x19490f82c]
+    +               773 __CFRunLoopDoObservers  (in CoreFoundation) + 648  [0x194835bbc]
+    +                 773 __CFRunLoopDoObserver  (in CoreFoundation) + 412  [0x19485fd1c]
+    +                   773 -[NSTableView layout]  (in AppKit) + 132  [0x198e31f4c]
+    +                     773 -[NSView layoutSubtreeIfNeeded]  (in AppKit) + 96  [0x198e31f9c]
+    +                       773 NSPerformVisuallyAtomicChange  (in AppKit) + 128  [0x198e2db5c]
+    +                         773 -[NSView _layoutSubtreeIfNeededAndAllowTemporaryEngine:]  (in AppKit) + 100  [0x198e3200c]
+    +                           773 -[NSISEngine withBehaviors:performModifications:]  (in AppKit) + 92  [0x19981a4dc]
+    +                             773 -[NSISEngine optimize]  (in AppKit) + 220  [0x19981b32c]
+    773 Thread_9835369: com.apple.NSEventThread
+    + 773 thread_start  (in libsystem_pthread.dylib) + 8  [0x194770cec]
+    +   773 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x194775d00]
+    +     773 _NSEventThread  (in AppKit) + 184  [0x198f10844]
+
+Total number in stack (recursive counted multiple, when >=5):
+
+Sort by top of stack, same collapsed (when >= 5):
+        -[NSISEngine optimize]  (in AppKit)        773
+
+Binary Images:
+       0x100fa0000 -        0x100fef7f7 +com.maxim.magpie-web-tunnel (1.2.1 - 5) <94FB5FCE-2FCD-31D3-8F10-C9FEE0F548A3> /Applications/Fixture.app/Contents/MacOS/MagpieTunnelStatus

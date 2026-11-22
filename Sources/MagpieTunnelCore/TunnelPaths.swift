@@ -47,4 +47,14 @@ public struct TunnelPaths: Equatable {
 
     /// Legacy bash daemon's mkdir lock, watched for interoperability.
     public var legacyLockDirectory: String { lockDirectory + "/tunnel.lock" }
+
+    /// Record binding the running daemon to the menu-bar app that owns it.
+    public var ownerPath: String { lockDirectory + "/daemon.owner" }
+
+    /// Named pipe the app writes to when it wants an immediate config reload.
+    /// Kept in the lock directory alongside the request/ack files.
+    public var reloadRequestPath: String { lockDirectory + "/reload.request" }
+
+    /// The daemon's answer to the most recent reload request.
+    public var reloadAckPath: String { lockDirectory + "/reload.ack" }
 }

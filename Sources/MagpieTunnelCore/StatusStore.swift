@@ -25,6 +25,11 @@ public struct StatusRecord: Equatable {
 
     public var isUp: Bool { state == "up" }
 
+    /// True while the daemon is actively establishing this tunnel and has not
+    /// yet either succeeded or failed. Any other state (including an unknown
+    /// string written by a foreign process) is not "connecting".
+    public var isConnecting: Bool { state == "connecting" }
+
     /// Port from an `up` record's `port=<n>` detail, if parseable.
     public var port: Int? {
         guard isUp, detail.hasPrefix("port=") else { return nil }
@@ -34,6 +39,14 @@ public struct StatusRecord: Equatable {
     /// `up` record: `up|<epoch>|port=<port>`
     public static func up(port: Int, epoch: Int? = nil) -> StatusRecord {
         StatusRecord(state: "up", epoch: epoch ?? Int(Date().timeIntervalSince1970), detail: "port=\(port)")
+    }
+
+    /// `connecting` record: `connecting|<epoch>|`
+    ///
+    /// Written when an ssh child has been spawned and the port is still being
+    /// probed. The empty detail keeps the line shape identical to `up`/`down`.
+    public static func connecting(epoch: Int? = nil) -> StatusRecord {
+        StatusRecord(state: "connecting", epoch: epoch ?? Int(Date().timeIntervalSince1970), detail: "")
     }
 
     /// `down` record: `down|<epoch>|<reason>`

@@ -101,6 +101,9 @@ final class TargetSupervisor {
             stateLock.unlock()
 
             mainLog.log("[\(target.name)] 连接 \(target.sshTarget) (本机 127.0.0.1:\(target.localPort) -> 远端 127.0.0.1:\(target.remotePort))")
+            // An ssh child now exists and the port is being probed: this is the
+            // only interval the UI is allowed to call "连接中".
+            statusStore.write(name: target.name, record: .connecting())
 
             // Probe the local port for up to 60 poll intervals (legacy: 60 × 0.5s).
             var markedUp = false

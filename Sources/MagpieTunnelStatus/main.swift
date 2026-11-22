@@ -7,6 +7,7 @@ struct StatusOptions {
     var statusDirectory: String?
     var logDirectory: String?
     var lockDirectory: String?
+    var sshBinary: String?
     var refreshInterval: TimeInterval = 10
     var smokeTest = false
 
@@ -28,6 +29,7 @@ struct StatusOptions {
             case "--status-dir": options.statusDirectory = nextValue(arg)
             case "--log-dir": options.logDirectory = nextValue(arg)
             case "--lock-dir": options.lockDirectory = nextValue(arg)
+            case "--ssh-bin": options.sshBinary = nextValue(arg)
             case "--refresh-interval":
                 guard let v = Double(nextValue(arg)), v > 0, v <= 3600 else {
                     FileHandle.standardError.write("MagpieTunnelStatus: --refresh-interval 需要一个 0...3600 的秒数\n".data(using: .utf8)!)
@@ -38,8 +40,10 @@ struct StatusOptions {
             case "-h", "--help":
                 print("MagpieTunnelStatus — magpie 隧道菜单栏状态\n\n" +
                       "用法: MagpieTunnelStatus [--config <path>] [--status-dir <path>] " +
-                      "[--log-dir <path>] [--lock-dir <path>] [--refresh-interval <sec>] [--smoke-test]\n" +
-                      "路径也可用 MAGPIE_TUNNEL_CONFIG 等环境变量覆盖（命令行优先）。")
+                      "[--log-dir <path>] [--lock-dir <path>] [--ssh-bin <path>] " +
+                      "[--refresh-interval <sec>] [--smoke-test]\n" +
+                      "路径也可用 MAGPIE_TUNNEL_CONFIG 等环境变量覆盖（命令行优先）。\n" +
+                      "路径参数会原样传给由本 App 拉起的 magpie-tunneld（它永远不会回落到生产默认路径）。")
                 exit(0)
             default:
                 FileHandle.standardError.write("MagpieTunnelStatus: 未知参数 \(arg)\n".data(using: .utf8)!)
@@ -55,6 +59,7 @@ struct StatusOptions {
         paths.statusDirectory = statusDirectory ?? paths.statusDirectory
         paths.logDirectory = logDirectory ?? paths.logDirectory
         paths.lockDirectory = lockDirectory ?? paths.lockDirectory
+        paths.sshBinary = sshBinary ?? paths.sshBinary
         return paths
     }
 }
@@ -66,8 +71,14 @@ let options = StatusOptions.parse(CommandLine.arguments)
 if options.smokeTest {
     let viewModel = StatusViewModel(paths: options.resolvedPaths())
     let state = viewModel.refresh()
-    print("icon=\(state.iconState.rawValue) \(state.summaryTitle)")
-    for row in state.targetRows {
+    print("icon=\(state.iconState.rawValue) \(state.subtitle)")
+    if let message = state.emptyState.message {
+        print(message)
+        if let action = state.emptyState.actionTitle {
+            print("按钮: " + action)
+        }
+    }
+    for row in state.rows {
         print(row.title + " → " + row.url)
     }
     for diagnostic in viewModel.lastDiagnostics {

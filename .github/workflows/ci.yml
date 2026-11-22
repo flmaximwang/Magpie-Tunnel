@@ -26,7 +26,7 @@ jobs:
 
       - name: Verify bundle
         run: |
-          APP='dist/Magpie Web 隧道.app'
+          APP='dist/Magpie-WebUI-Tunnel.app'
           test -x "$APP/Contents/MacOS/MagpieTunnelStatus"
           test -x "$APP/Contents/MacOS/magpie-tunneld"
           test -f "$APP/Contents/Resources/AppIcon.icns"
@@ -41,6 +41,7 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$APP/Contents/Info.plist" \
             | grep -x 'AppIcon'
           test ! -e 'dist/Magpie Tunnel Status.app'
+          test ! -e 'dist/Magpie Web 隧道.app'
 
       - name: Smoke test the packaged binaries
         run: |
@@ -51,8 +52,8 @@ jobs:
           MAGPIE_TUNNEL_STATUS_DIR="$TMP/status" \
           MAGPIE_TUNNEL_LOG_DIR="$TMP/logs" \
           MAGPIE_TUNNEL_LOCK_DIR="$TMP/lock" \
-            'dist/Magpie Web 隧道.app/Contents/MacOS/MagpieTunnelStatus' --smoke-test \
+            'dist/Magpie-WebUI-Tunnel.app/Contents/MacOS/MagpieTunnelStatus' --smoke-test \
             | tee "$TMP/out.txt"
           grep -q 'icon=' "$TMP/out.txt"
-          grep -q 'magpie 隧道' "$TMP/out.txt"
+          grep -q '条隧道' "$TMP/out.txt"
           ! grep -q '?key=' "$TMP/out.txt"

@@ -28,82 +28,14 @@ public struct ParsedTargets: Equatable {
 public enum TargetsParser {
     public static let separator = "|"
 
-    /// Parse the textual content of a config file.
+    /// Parse the textual content of a config file. Validation lives in
+    /// `ConfigDocument` so the daemon's parser and the config editor's draft
+    /// model can never disagree about what a valid row is.
     public static func parse(_ text: String) -> ParsedTargets {
-        var targets: [TargetConfig] = []
-        var diagnostics: [String] = []
-        var seenNames: Set<String> = []
-        var seenLocalPorts: [Int: String] = [:]
-
-        let rawLines = splitLines(text)
-        for (index, raw) in rawLines.enumerated() {
-            let line = raw.trimmingCharacters(in: .whitespaces)
-            let lineNumber = index + 1
-
-            if line.isEmpty || line.hasPrefix("#") {
-                continue // comment / blank: preserved via rawLines
-            }
-
-            let fields = raw.components(separatedBy: separator)
-            // 4 fields (key omitted) or 5 fields (key possibly empty) are valid.
-            guard fields.count == 4 || fields.count == 5 else {
-                diagnostics.append("第 \(lineNumber) 行：字段数 \(fields.count) 不合法（应为 4 或 5，用 | 分隔）")
-                continue
-            }
-
-            let name = fields[0].trimmingCharacters(in: .whitespaces)
-            let portText = fields[1].trimmingCharacters(in: .whitespaces)
-            let ssh = fields[2].trimmingCharacters(in: .whitespaces)
-            let remoteText = fields[3].trimmingCharacters(in: .whitespaces)
-            let key = fields.count == 5
-                ? fields[4].trimmingCharacters(in: .whitespaces)
-                : ""
-
-            func problem(_ message: String) {
-                diagnostics.append("第 \(lineNumber) 行：\(message)")
-            }
-
-            guard !name.isEmpty else {
-                problem("名字为空")
-                continue
-            }
-            guard !name.contains("/"), !name.contains("\\"), !name.hasPrefix("."), !name.contains(":") else {
-                problem("名字 “\(name)” 含不安全字符（不能包含 / \\ : ，不能以 . 开头）")
-                continue
-            }
-            guard !ssh.isEmpty else {
-                problem("“\(name)” 的 ssh 目标为空")
-                continue
-            }
-            guard let localPort = Int(portText), (1...65535).contains(localPort) else {
-                problem("“\(name)” 的本机端口 “\(portText)” 不合法（应为 1...65535）")
-                continue
-            }
-            guard let remotePort = Int(remoteText), (1...65535).contains(remotePort) else {
-                problem("“\(name)” 的远端端口 “\(remoteText)” 不合法（应为 1...65535）")
-                continue
-            }
-            if seenNames.contains(name) {
-                problem("名字 “\(name)” 重复，已忽略后续行")
-                continue
-            }
-            if let other = seenLocalPorts[localPort] {
-                problem("本机端口 \(localPort) 与 “\(other)” 冲突，已忽略 “\(name)”")
-                continue
-            }
-
-            seenNames.insert(name)
-            seenLocalPorts[localPort] = name
-            targets.append(TargetConfig(
-                name: name,
-                localPort: localPort,
-                sshTarget: ssh,
-                remotePort: remotePort,
-                webKey: key
-            ))
-        }
-
-        return ParsedTargets(targets: targets, rawLines: rawLines, diagnostics: diagnostics)
+        let document = ConfigDocument.parse(text)
+        return ParsedTargets(targets: document.targets,
+                             rawLines: splitLines(text),
+                             diagnostics: document.diagnostics)
     }
 
     /// Parse a config file from disk. Throws only when the file cannot be read;
@@ -120,8 +52,17 @@ public enum TargetsParser {
     }
 
     /// Split text into logical lines, tolerating \r\n and a missing final newline.
+    ///
+    /// Splitting on `\n` and stripping one trailing `\r` per line, rather than
+    /// `components(separatedBy: .newlines)`: Foundation's `.newlines` matches
+    /// `\r` *and* `\n`, so every `\r\n` used to yield an extra empty line and
+    /// the editor would copy those blanks back on the next save. `split(separator:)`
+    /// cannot be used either: Swift treats `\r\n` as a single `Character`, so a
+    /// CRLF file would come back as one giant line.
     static func splitLines(_ text: String) -> [String] {
-        var lines = text.components(separatedBy: .newlines)
+        var lines = text.components(separatedBy: "\n").map { line in
+            line.hasSuffix("\r") ? String(line.dropLast()) : line
+        }
         if let last = lines.last, last.isEmpty {
             lines.removeLast()
         }

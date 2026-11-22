@@ -1,12 +1,16 @@
 #!/bin/bash
 # Build ONE macOS app bundle into dist/:
 #
-#   dist/Magpie Web 隧道.app   — menu-bar entry (CFBundleExecutable) plus the
-#                                bundled `magpie-tunneld` daemon in Contents/MacOS
+#   dist/Magpie-WebUI-Tunnel.app — menu-bar entry (CFBundleExecutable) plus the
+#                                  bundled `magpie-tunneld` daemon in Contents/MacOS
 #
-# The daemon is a plain child process of the menu-bar app: opening the app
-# starts it (if not already running), the menu's restart action stops and
-# starts it, and quitting the app leaves it running — the tunnels keep serving.
+# The daemon is a child process owned by the menu-bar app: opening the app
+# starts it (if not already running), the restart action stops and starts it,
+# and quitting the app shuts the daemon and every tunnel down.
+#
+# Bundle identifier stays com.maxim.magpie-web-tunnel and the on-disk paths
+# (~/Library/Application Support/MagpieWebTunnel, ~/Library/Logs) are unchanged,
+# so data written by earlier versions keeps working.
 #
 # Ad-hoc codesign (codesign -s -), no developer certificate needed.
 set -euo pipefail
@@ -57,11 +61,14 @@ if [[ -z "$PRODUCTS_DIR" ]]; then
 fi
 echo "==> 使用构建产物: $PRODUCTS_DIR"
 
-APP="$DIST/Magpie Web 隧道.app"
+APP="$DIST/Magpie-WebUI-Tunnel.app"
 LEGACY_STATUS_APP="$DIST/Magpie Tunnel Status.app"
+# Stale build output from before the rename. This is a dist/ artifact only —
+# installed copies of the old app are never touched by this script.
+LEGACY_NAMED_APP="$DIST/Magpie Web 隧道.app"
 
 echo "==> 重建 $DIST"
-rm -rf "$APP" "$LEGACY_STATUS_APP"
+rm -rf "$APP" "$LEGACY_STATUS_APP" "$LEGACY_NAMED_APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 # Menu-bar app is the bundle's main executable; the daemon ships beside it so
@@ -85,7 +92,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 	<key>CFBundleDevelopmentRegion</key>
 	<string>zh_CN</string>
 	<key>CFBundleDisplayName</key>
-	<string>Magpie Web 隧道</string>
+	<string>Magpie-WebUI-Tunnel</string>
 	<key>CFBundleExecutable</key>
 	<string>MagpieTunnelStatus</string>
 	<key>CFBundleIconFile</key>
@@ -95,7 +102,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Magpie Web 隧道</string>
+	<string>Magpie-WebUI-Tunnel</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

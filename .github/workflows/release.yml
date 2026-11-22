@@ -32,7 +32,7 @@ jobs:
 
       - name: Verify bundle
         run: |
-          APP='dist/Magpie Web 隧道.app'
+          APP='dist/Magpie-WebUI-Tunnel.app'
           test -x "$APP/Contents/MacOS/MagpieTunnelStatus"
           test -x "$APP/Contents/MacOS/magpie-tunneld"
           codesign --verify --deep --strict "$APP"
@@ -46,8 +46,8 @@ jobs:
       - name: Package zip
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          NAME="Magpie-Web-Tunnel-${VERSION}.zip"
-          ditto -c -k --sequesterRsrc --keepParent 'dist/Magpie Web 隧道.app' "dist/$NAME"
+          NAME="Magpie-WebUI-Tunnel-${VERSION}.zip"
+          ditto -c -k --sequesterRsrc --keepParent 'dist/Magpie-WebUI-Tunnel.app' "dist/$NAME"
           # Checksums must name the files as a downloader sees them (flat, next
           # to the zip), not dist/-prefixed paths that only exist in this repo.
           ( cd dist && shasum -a 256 "$NAME" > SHA256SUMS.txt )
@@ -59,7 +59,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           gh release create "$GITHUB_REF_NAME" \
-            "dist/Magpie-Web-Tunnel-${VERSION}.zip" \
+            "dist/Magpie-WebUI-Tunnel-${VERSION}.zip" \
             dist/SHA256SUMS.txt \
-            --title "Magpie Web 隧道 $VERSION" \
+            --title "Magpie-WebUI-Tunnel $VERSION" \
             --generate-notes

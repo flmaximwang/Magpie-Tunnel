@@ -12,6 +12,9 @@ struct DaemonOptions {
     var pollInterval: TimeInterval = 0.5
     var reloadInterval: TimeInterval = 20
     var useDefaultTargetsWhenMissing = true
+    /// PID of the menu-bar app that owns this daemon. When set, the daemon
+    /// records the binding and exits as soon as the app goes away.
+    var ownerAppPID: Int32?
 
     static let usage = """
     magpie-tunneld — magpie 隧道守护进程
@@ -27,12 +30,13 @@ struct DaemonOptions {
       --ssh-bin <path>        ssh 可执行文件 (默认 /usr/bin/ssh)
       --poll-interval <sec>   端口探测间隔 (默认 0.5)
       --reload-interval <sec> 配置热重载间隔 (默认 20)
+      --owner-pid <pid>       绑定到该菜单栏 App；App 消失后守护自动退出
       --no-default-targets    配置文件缺失时不回退到内置默认目标
       -h, --help              显示本帮助
 
     行为:
       · 只重启配置中新增/修改/删除的目标，未变的目标保持运行
-      · SIGTERM/SIGINT 干净退出：杀掉所有 ssh 子进程并释放锁
+      · 守护退出时（SIGTERM/SIGINT、绑定的 App 消失）杀掉所有 ssh 子进程并释放锁
     """
 
     static func parse(_ arguments: [String]) -> DaemonOptions {
@@ -66,6 +70,12 @@ struct DaemonOptions {
                     exit(64)
                 }
                 options.reloadInterval = v
+            case "--owner-pid":
+                guard let v = Int32(nextValue(arg)), v > 0 else {
+                    FileHandle.standardError.write("magpie-tunneld: --owner-pid 需要一个正整数\n".data(using: .utf8)!)
+                    exit(64)
+                }
+                options.ownerAppPID = v
             case "--no-default-targets":
                 options.useDefaultTargetsWhenMissing = false
             case "-h", "--help":

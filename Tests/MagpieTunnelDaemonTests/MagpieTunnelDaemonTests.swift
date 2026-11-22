@@ -157,14 +157,16 @@ final class MagpieTunnelDaemonIntegrationTests: XCTestCase {
     }
 
     @discardableResult
-    private func launchDaemon(configPath: String, pollInterval: TimeInterval = 0.2, reloadInterval: TimeInterval = 1) throws -> DaemonHandle {
+    private func launchDaemon(configPath: String, pollInterval: TimeInterval = 0.2,
+                              reloadInterval: TimeInterval = 1,
+                              ownerPID: Int32? = nil) throws -> DaemonHandle {
         let mockBin = try writeMockSSH()
         let stderrPath = workDir + "/daemon.err"
         FileManager.default.createFile(atPath: stderrPath, contents: nil)
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: try Self.daemonBinaryPath())
-        process.arguments = [
+        var arguments = [
             "--config", configPath,
             "--status-dir", workDir + "/status",
             "--log-dir", workDir + "/logs",
@@ -174,6 +176,10 @@ final class MagpieTunnelDaemonIntegrationTests: XCTestCase {
             "--reload-interval", String(reloadInterval),
             "--no-default-targets",
         ]
+        if let ownerPID {
+            arguments.append(contentsOf: ["--owner-pid", String(ownerPID)])
+        }
+        process.arguments = arguments
         var environment = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("MAGPIE_TUNNEL_") }
         environment["MOCK_DIR"] = workDir + "/mock"
         process.environment = environment
@@ -377,6 +383,166 @@ final class MagpieTunnelDaemonIntegrationTests: XCTestCase {
         let retried = waitUntil(timeout: 25, "失败后重连") { self.spawnCount(port: port) >= 2 }
         XCTAssertTrue(retried, "启动次数: \(spawnCount(port: port)) 日志: \(daemonLog())")
         XCTAssertLessThanOrEqual(spawnCount(port: port), 6, "重连过于频繁，退避未生效: \(daemonLog())")
+
+        terminateDaemon(handle)
+    }
+
+    // MARK: - immediate reload from the menu-bar app
+
+    private var reloadLockDir: String { workDir + "/lock" }
+
+    @discardableResult
+    private func requestReload(digest: String) throws -> ReloadRequest {
+        let coordinator = ReloadCoordinator(lockDirectory: reloadLockDir)
+        let request = ReloadRequest(requestID: UUID().uuidString, digest: digest)
+        try coordinator.writeRequest(request)
+        return request
+    }
+
+    private func ack(for request: ReloadRequest) -> ReloadAck? {
+        let ack = ReloadCoordinator(lockDirectory: reloadLockDir).readAck()
+        return ack?.requestID == request.requestID ? ack : nil
+    }
+
+    func testReloadRequestAppliesImmediatelyWithoutWaitingForThePollTimer() throws {
+        let portA = try Self.freePort()
+        let portB = try Self.freePort()
+        let configPath = try writeConfig(["alpha|\(portA)|mock@example.com|22|"])
+        // A 300 s poll interval proves the apply comes from the request, not the timer.
+        let handle = try launchDaemon(configPath: configPath, reloadInterval: 300)
+
+        let alphaUp = waitUntil(timeout: 20, "alpha up") { self.status("alpha")?.isUp == true }
+        XCTAssertTrue(alphaUp, "日志: \(daemonLog())")
+
+        let newText = "# added by the config window\n"
+            + "alpha|\(portA)|mock@example.com|22|\n"
+            + "beta|\(portB)|mock@example.com|22|\n"
+        try newText.write(toFile: configPath, atomically: true, encoding: .utf8)
+        let request = try requestReload(digest: ConfigDigest.digest(newText))
+
+        let confirmed = waitUntil(timeout: 15, "收到重读确认") {
+            self.ack(for: request) != nil
+        }
+        XCTAssertTrue(confirmed, "日志: \(daemonLog())")
+        let ack = try XCTUnwrap(self.ack(for: request))
+        XCTAssertEqual(ack.outcome, .applied)
+        XCTAssertEqual(ack.digest, ConfigDigest.digest(newText))
+        XCTAssertEqual(ack.targetCount, 2)
+        XCTAssertEqual(ack.detail, "")
+
+        let betaUp = waitUntil(timeout: 15, "beta up") { self.status("beta")?.isUp == true }
+        XCTAssertTrue(betaUp, "日志: \(daemonLog())")
+        XCTAssertEqual(spawnCount(port: portA), 1, "未改动的 alpha 不应被重启")
+
+        terminateDaemon(handle)
+    }
+
+    func testReloadRequestForMissingConfigStopsEveryTunnel() throws {
+        let port = try Self.freePort()
+        let configPath = try writeConfig(["t1|\(port)|mock@example.com|22|"])
+        let handle = try launchDaemon(configPath: configPath, reloadInterval: 300)
+
+        let up = waitUntil(timeout: 20, "t1 up") { self.status("t1")?.isUp == true }
+        XCTAssertTrue(up, "日志: \(daemonLog())")
+
+        try FileManager.default.removeItem(atPath: configPath)
+        let request = try requestReload(digest: ConfigDigest.digest(""))
+
+        let stopped = waitUntil(timeout: 15, "t1 变为配置移除") {
+            self.status("t1")?.state == "down"
+        }
+        XCTAssertTrue(stopped, "状态: \(String(describing: status("t1"))) 日志: \(daemonLog())")
+        let ack = try XCTUnwrap(waitForAck(request))
+        XCTAssertEqual(ack.outcome, .applied)
+        XCTAssertEqual(ack.targetCount, 0)
+        XCTAssertEqual(ack.detail, "配置文件不存在")
+
+        terminateDaemon(handle)
+    }
+
+    func testReloadRequestWithUnchangedDigestIsStillAckedWithWhatWasApplied() throws {
+        let port = try Self.freePort()
+        let text = "t1|\(port)|mock@example.com|22|\n"
+        let configPath = try writeConfig(["t1|\(port)|mock@example.com|22|"])
+        let handle = try launchDaemon(configPath: configPath, reloadInterval: 300)
+        _ = waitUntil(timeout: 20, "t1 up") { self.status("t1")?.isUp == true }
+
+        // The file changed after the app recorded its digest: the ack must carry
+        // the digest of what the daemon actually read, plus a note.
+        try "t2\n".write(toFile: configPath, atomically: true, encoding: .utf8)
+        let request = try requestReload(digest: ConfigDigest.digest(text))
+        let ack = try XCTUnwrap(waitForAck(request))
+        XCTAssertEqual(ack.digest, ConfigDigest.digest("t2\n"))
+        XCTAssertEqual(ack.detail, "配置文件在请求后被修改")
+        XCTAssertEqual(ack.targetCount, 0)
+
+        terminateDaemon(handle)
+    }
+
+    private func waitForAck(_ request: ReloadRequest, timeout: TimeInterval = 15) -> ReloadAck? {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if let ack = ack(for: request) { return ack }
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        return nil
+    }
+
+    // MARK: - owner binding and watchdog
+
+    func testOwnerRecordIsWrittenAndTunnelsDieWithTheOwningApp() throws {
+        // Stand in for the menu-bar app: a process we can kill. The daemon must
+        // notice and shut itself down, leaving no tunnel behind.
+        let app = Process()
+        app.executableURL = URL(fileURLWithPath: "/bin/sleep")
+        app.arguments = ["120"]
+        try app.run()
+        defer { if app.isRunning { kill(app.processIdentifier, SIGKILL) } }
+
+        let port = try Self.freePort()
+        let configPath = try writeConfig(["t1|\(port)|mock@example.com|22|"])
+        let handle = try launchDaemon(configPath: configPath, ownerPID: app.processIdentifier)
+
+        let up = waitUntil(timeout: 20, "t1 up") { self.status("t1")?.isUp == true }
+        XCTAssertTrue(up, "日志: \(daemonLog())")
+        let owner = DaemonOwner.read(path: workDir + "/lock/daemon.owner")
+        XCTAssertEqual(owner?.appPID, app.processIdentifier)
+        XCTAssertEqual(owner?.daemonPID, handle.process.processIdentifier)
+
+        kill(app.processIdentifier, SIGKILL)
+        app.waitUntilExit()
+
+        // Watchdog polls every 2 s; allow for scheduling slack.
+        let exited = waitUntil(timeout: 20, "守护随 App 退出") { !handle.process.isRunning }
+        XCTAssertTrue(exited, "日志: \(daemonLog())")
+        handle.process.waitUntilExit()
+        XCTAssertEqual(handle.process.terminationStatus, 0)
+
+        let down = status("t1")
+        XCTAssertEqual(down?.state, "down")
+        XCTAssertEqual(down?.detail, "守护退出", "状态: \(String(describing: down)) 日志: \(daemonLog())")
+        XCTAssertTrue(daemonLog().contains("原因：App 退出"), "日志应记录退出原因: \(daemonLog())")
+        XCTAssertNil(DaemonOwner.read(path: workDir + "/lock/daemon.owner"))
+        let portClosed = waitUntil(timeout: 5, "端口随 App 退出关闭") {
+            !TCPProbe.canConnect(port: port, timeout: 0.5)
+        }
+        XCTAssertTrue(portClosed)
+    }
+
+    func testDaemonWithoutOwnerKeepsRunning() throws {
+        // No --owner-pid (a manually launched daemon): it must not watch anything.
+        let port = try Self.freePort()
+        let configPath = try writeConfig(["t1|\(port)|mock@example.com|22|"])
+        let handle = try launchDaemon(configPath: configPath)
+
+        let up = waitUntil(timeout: 20, "t1 up") { self.status("t1")?.isUp == true }
+        XCTAssertTrue(up, "日志: \(daemonLog())")
+        XCTAssertNil(DaemonOwner.read(path: workDir + "/lock/daemon.owner"))
+
+        // The executable target is not importable: the watchdog polls every 2 s,
+        // so sleeping past a couple of ticks is the check.
+        Thread.sleep(forTimeInterval: 5)
+        XCTAssertTrue(handle.process.isRunning, "无归属的守护不应自行退出")
 
         terminateDaemon(handle)
     }

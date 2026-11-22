@@ -1,0 +1,47 @@
+Analysis of sampling MagpieTunnelStatus (pid 4242) every 1 millisecond
+Process:         MagpieTunnelStatus [4242]
+Path:            /Applications/Fixture.app/Contents/MacOS/MagpieTunnelStatus
+Date/Time:       2026-11-22 02:00:00.000 +0800
+Launch Time:     2026-11-22 01:59:00.000 +0800
+OS Version:      macOS 27.0.1 (26A300)
+Report Version:  7
+
+Analysis Tool: /usr/bin/sample
+
+Call graph:
+    773 Thread_9835294   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 773 start  (in dyld) + 6688  [0x19439fe80]
+    +   773 main  (in MagpieTunnelStatus) + 496  [0x100fa24ec]  main.swift:96
+    +     773 -[NSApplication run]  (in AppKit) + 396  [0x198ddf90c]
+    +       773 -[NSApplication(NSEventRouting) nextEventMatchingMask:untilDate:inMode:dequeue:]  (in AppKit) + 292  [0x19966426c]
+    +         773 _DPSNextEvent  (in AppKit) + 580  [0x198dec4fc]
+    +           773 _DPSBlockUntilNextEventMatchingListInMode  (in AppKit) + 292  [0x19912f29c]
+    +             773 _BlockUntilNextEventMatchingListInMode  (in HIToolbox) + 48  [0x1a1dee380]
+    +               773 ReceiveNextEventCommon  (in HIToolbox) + 492  [0x1a1c6b91c]
+    +                 773 RunCurrentEventLoopInMode  (in HIToolbox) + 320  [0x1a1c68590]
+    +                   773 _CFRunLoopRunSpecificWithOptions  (in CoreFoundation) + 536  [0x19490f82c]
+    +                     768 __CFRunLoopRun  (in CoreFoundation) + 1172  [0x194835334]
+    +                     ! 768 __CFRunLoopServiceMachPort  (in CoreFoundation) + 160  [0x194836aec]
+    +                     !   768 mach_msg  (in libsystem_kernel.dylib) + 24  [0x194730fac]
+    +                     !     768 mach_msg_overwrite  (in libsystem_kernel.dylib) + 480  [0x194739a28]
+    +                     !       768 mach_msg2_internal  (in libsystem_kernel.dylib) + 76  [0x1947438e0]
+    +                     !         768 mach_msg2_trap  (in libsystem_kernel.dylib) + 8  [0x194730c20]
+    +                     5 __CFRunLoopDoTimers  (in CoreFoundation) + 316  [0x19485d10c]
+    +                       5 __CFRunLoopDoTimer  (in CoreFoundation) + 1060  [0x194833630]
+    +                         5 __CFRunLoopDoTimer_locked  (in CoreFoundation) + 8  [0x19485d34c]
+    +                           5 __runTimer  (in CoreFoundation) + 132  [0x19485c7a4]
+    +                             5 __NSFireTimer  (in Foundation) + 84  [0x196407f94]
+    +                               5 @objc AppDelegate.tick(_:)  (in MagpieTunnelStatus) + 96  [0x100fa5424]
+    +                                 5 AppDelegate.tick(_:)  (in MagpieTunnelStatus) + 16  [0x100fa5068]  AppDelegate.swift:76
+    +                                   5 AppDelegate.refreshIcon()  (in MagpieTunnelStatus) + 44  [0x100fa489c]  AppDelegate.swift:83
+    +                                     5 StatusViewModel.refresh()  (in MagpieTunnelStatus) + 464  [0x100fc63e8]  StatusViewModel.swift:45
+    773 Thread_9835369: com.apple.NSEventThread
+    + 773 thread_start  (in libsystem_pthread.dylib) + 8  [0x194770cec]
+
+Total number in stack (recursive counted multiple, when >=5):
+
+Sort by top of stack, same collapsed (when >= 5):
+        mach_msg2_trap  (in libsystem_kernel.dylib)        768
+
+Binary Images:
+       0x100fa0000 -        0x100fef7f7 +com.maxim.magpie-web-tunnel (1.2.1 - 5) <94FB5FCE-2FCD-31D3-8F10-C9FEE0F548A3> /Applications/Fixture.app/Contents/MacOS/MagpieTunnelStatus
