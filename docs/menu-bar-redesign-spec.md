@@ -47,9 +47,10 @@
 
 ## 实现状态
 
-已实现并通过验收（2026-11-22），改动仍在工作树中，未提交、未安装、未发布。
+已实现并通过验收（2026-11-22），已随 v1.3.0 提交并发布（commit d95ad22 + 15ba992，tag v1.3.0）。未安装到 `~/Applications` —— 安装由用户另行安排。
 
 - `swift test`：Core 92 / Status 93 / Daemon 12，全绿。`scripts/build-apps.sh` 产出 `dist/Magpie-WebUI-Tunnel.app`，`CFBundleDisplayName` 与 `CFBundleName` 均为 `Magpie-WebUI-Tunnel`，bundle ID 与最低系统版本不变。
 - 自动化界面验收：`Tests/manual-ui/ui_acceptance.sh`（面板、两窗口绘制与主线程响应）、`kill_acceptance.sh`（强制退出清理与重启恢复，23 项断言）、`appearance_check.sh`（浅/深色可辨认）。本机状态栏被 `capcap` 覆盖层挡住，脚本会记录 `method: "AXPress"` 并继续，不误判为失败。
 - 人工验收：面板四态与空态、配置窗口的草稿/冲突/坏行修正/删空保存、日志窗口的跟随/搜索/复制/轮转、`kill -9` 与 SIGTERM 两种退出路径，均已逐一截图确认。
-- 仍未覆盖：深色宿主下的浅色分支可以自动验证（`NSRequiresAquaSystemAppearance=YES`），**浅色宿主下的深色分支**无法自动强制，需人工切换系统外观后复验；发布打包与签名未执行。
+- 发布产物：`Magpie-WebUI-Tunnel-1.3.0.zip` + `SHA256SUMS.txt`（[Release v1.3.0](https://github.com/flmaximwang/Magpie-Tunnel/releases/tag/v1.3.0)），本地下载后校验 checksum OK、plist 1.3.0/build 6、`LSMinimumSystemVersion` 12.0、lipo 双架构、`codesign --verify --deep --strict` 通过、`--smoke-test` 正常。
+- 仍未覆盖：深色宿主下的浅色分支可以自动验证（`NSRequiresAquaSystemAppearance=YES`），**浅色宿主下的深色分支**无法自动强制，需人工切换系统外观后复验。
