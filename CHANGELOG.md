@@ -2,7 +2,7 @@
 
 本项目的所有显著变更记录在此。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
-## [未发布]
+## [1.3.0] - 2026-11-22
 
 ### 新增
 
